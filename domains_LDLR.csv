@@ -1,0 +1,21 @@
+startcodon,endcodon,startcd,endcd,function,type,code
+789,810,2367,2430,Helical; Potential,Transmembrane,3
+25,65,75,195,LDL-receptor class A 1,Domain,1
+66,106,198,318,LDL-receptor class A 2,Domain,1
+107,145,321,435,LDL-receptor class A 3,Domain,1
+146,186,438,558,LDL-receptor class A 4,Domain,1
+195,233,585,699,LDL-receptor class A 5,Domain,1
+234,272,702,816,LDL-receptor class A 6,Domain,1
+274,313,822,939,LDL-receptor class A 7,Domain,1
+314,353,942,1059,EGF-like 1,Domain,2
+354,393,1062,1179,EGF-like 2; calcium-binding Potential,Domain,2
+397,438,1191,1314,LDL-receptor class B 1,Repeat,1
+439,485,1317,1455,LDL-receptor class B 2,Repeat,1
+486,528,1458,1584,LDL-receptor class B 3,Repeat,1
+529,572,1587,1716,LDL-receptor class B 4,Repeat,1
+573,615,1719,1845,LDL-receptor class B 5,Repeat,1
+616,658,1848,1974,LDL-receptor class B 6,Repeat,1
+663,712,1989,2136,EGF-like 3,Domain,2
+721,768,2163,2304,Clustered O-linked oligosaccharides,Region,3
+811,860,2433,2580,Required for MYLIP-triggered down-regulation of LDLR,Region,3
+823,828,2469,2484,Endocytosis signal Potential,Motif,3

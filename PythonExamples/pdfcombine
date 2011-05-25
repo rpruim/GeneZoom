@@ -4,10 +4,7 @@ from glob import glob
 from os import path
 from optparse import OptionParser
 import re
-#import MySQLdb
 import sys
-
-
 
 def getSettings():
   parser = OptionParser();
@@ -26,15 +23,6 @@ if path.isdir(args[0]):
 elif len(args) > 1:
   pdf_files = args;
 print "Found %i pdfs to parse.." % len(pdf_files);
-
-# Merge them together, putting one pdf after the other.
-#ordered = [];
-#for snp in meta_snp2file:
-#  chrpos = findPos(snp);
-#  print "Found position %s for SNP %s.." % (str(chrpos),snp);
-#  ordered.append((snp,chrpos));
-#ordered = sorted(ordered,key = lambda x: x[1],cmp=cmp_genome);
-#ordered = [i[0] for i in ordered];
 
 output = PdfFileWriter();
 for pdf_file_name in pdf_files:

@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+from pyPdf import PdfFileWriter, PdfFileReader
+from glob import glob
+from os import path
+from optparse import OptionParser
+import re
+#import MySQLdb
+import sys
+
+
+
+def getSettings():
+  parser = OptionParser();
+  parser.add_option("-o","--output",dest="out");
+
+  parser.set_defaults(
+    out = "merged_pdfs.pdf"
+  );
+
+  return parser.parse_args();
+
+opts,args = getSettings();
+
+if path.isdir(args[0]):
+  pdf_files = glob(path.join(args[0],"*pdf"));
+elif len(args) > 1:
+  pdf_files = args;
+print "Found %i pdfs to parse.." % len(pdf_files);
+
+# Merge them together, putting one pdf after the other.
+#ordered = [];
+#for snp in meta_snp2file:
+#  chrpos = findPos(snp);
+#  print "Found position %s for SNP %s.." % (str(chrpos),snp);
+#  ordered.append((snp,chrpos));
+#ordered = sorted(ordered,key = lambda x: x[1],cmp=cmp_genome);
+#ordered = [i[0] for i in ordered];
+
+output = PdfFileWriter();
+for pdf_file_name in pdf_files:
+  pdf_file = PdfFileReader(file(pdf_file_name,"rb"));
+  for page in xrange(pdf_file.getNumPages()):
+  	output.addPage(pdf_file.getPage(page));
+
+out_stream = file(opts.out,"wb");
+output.write(out_stream);
+out_stream.close();

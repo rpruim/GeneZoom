@@ -1,0 +1,70 @@
+#!/usr/bin/env python
+from pyPdf import PdfFileWriter, PdfFileReader
+from glob import glob
+from os import path
+from optparse import OptionParser
+import re
+#import MySQLdb
+import sys
+
+
+
+def getSettings():
+  parser = OptionParser();
+  parser.add_option("-o","--output",dest="out");
+  parser.add_option("-a","--adjust",dest="adjust");
+  parser.add_option("-p","--pages",dest="pages");
+
+  parser.set_defaults(
+    out = "culled.pdf",
+	pages = '1-1',
+	adjust= '0',
+  );
+
+  return parser.parse_args();
+
+def page_range(p):
+	(a,b) = p
+	if a <=b :
+		return range(a,b+1)
+	return range(a,b-1,-1)
+
+def processPages(opts):
+    pageItems = opts.pages
+    pageItems = pageItems.replace(' ','')
+    pageItems = pageItems.split(',')
+    pageItems = [p.split('-') for p in pageItems]
+    pageItems = [ [int(p) for p in q] for q in pageItems]
+    pageItems = [ page_range(p) for p in pageItems]
+    pages = []
+    for pageItem in pageItems:
+        pages.extend(pageItem)
+
+	adjust = int(opts.adjust)
+    return [p - 1 + adjust for p in pages]
+
+opts,args = getSettings();
+
+pageList = processPages(opts);
+
+
+if path.isdir(args[0]):
+  pdf_files = glob(path.join(args[0],"*pdf"));
+elif len(args) >= 1:
+  pdf_files = args;
+print "Found %i pdfs to parse.." % len(pdf_files);
+
+output = PdfFileWriter();
+pdf_pages = []
+for pdf_file_name in pdf_files:
+  pdf_file = PdfFileReader(file(pdf_file_name,"rb"));
+  pdf_pages.extend( [pdf_file.getPage(page) for page in xrange(pdf_file.getNumPages()) ] )
+
+
+for page in pageList:
+  if page >= 0 and page < len(pdf_pages):
+    output.addPage(pdf_pages[page]);
+
+out_stream = file(opts.out,"wb");
+output.write(out_stream);
+out_stream.close();

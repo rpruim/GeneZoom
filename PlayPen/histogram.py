@@ -1,3 +1,4 @@
+#! /usr/bin/env python 
 
 ######################################################################################
 #
@@ -23,43 +24,40 @@ parser.add_option("-f", "--file", dest="filename", help ="write report to FILE",
 parser.add_option("-q", "--quiet",
                   action="store_false", dest="verbose", default=True,
                   help="don't print status messages to stdout")
+parser.add_option("-c", "--column", dest="column", help="write report to FILE")
 (options, args)=parser.parse_args()
 
 #initialize the csv reader as reader
-options.filename="domains_LDLR.csv"
+#options.filename="domains_LDLR.csv"
+#options.column="startcodon"
 #reader=csv.reader(open(options.filename))
 f=open(options.filename, "r")
 dictReader=csv.DictReader(f, delimiter=",")
 fieldnames=dictReader.fieldnames
 
 #initialize a list, then input the correspondent value for code for each row in dictReader
-code=[]
+data=[]
+listMin=False
+listMax=False
 for row in dictReader:
-    newValue = row['code']
-    code+=[int(newValue)]
+    newValue = row[options.column]
+    data+=[int(newValue)]
+    
 #sort the list, store the min and max    
-#code.sort()
-#listMin=code[0]
-#listMax=code[len(code)-1]
+data.sort()
+listMin=data[0]
+listMax=data[len(data)-1]
 
-binNumber=3
+binNumber=len(data)+1
 
-n, bins, patches = plt.hist(code, binNumber, normed=0, facecolor='green', alpha=0.75, align='mid', rwidth=1, range=(1, 3))
+n, bins, patches = plt.hist(data, binNumber, facecolor='green', alpha=0.75, range=(listMin-0.5, listMax+0.5), align='mid', rwidth=1)
 
-plt.xlabel('Values')
+plt.xlabel(options.column)
 plt.ylabel('Frequency')
-plt.title("Code Frequency")
-xMin=0.5
-xMax=3.5
-yMin=0
-yMax=15
-plt.axis([xMin, xMax, yMin, yMax])
+plt.title("Frequency of %s" %options.column)
 plt.grid(True)
 
 plt.show()
-#print fieldnames
-#for row in dictReader:
-#    print row['endcd']
     
 #data=genfromtxt(options.filename, delimiter=",", skip_header=1)
 #print data

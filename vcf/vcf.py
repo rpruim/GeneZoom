@@ -197,6 +197,11 @@ class VCFrow:
 	def genotypes(self, start=9, stop=None):
 		if stop == None:
 			stop = len(self._items)
+		return [ string.split(g,":")[0] for g in self._items[start:stop] ]
+
+	def genotypeTally(self, start=9, stop=None):
+		if stop == None:
+			stop = len(self._items)
 		result = {}
 		for col in range(start, stop):
 			try:
@@ -253,7 +258,8 @@ if __name__ == '__main__':
 		print 'fetch_range(', pos, pos+offset, ')...'
 		# print string.join( [str(l) for l in stuff], "\n" )
 		for c in stuff:
-			print (c.getlocus(), c.genotypes()) 
+			print (c.getlocus(), c.genotypeTally()) 
+			print c.genotypes()
 		print '\nTotal: ', len(stuff), 'markers'
 
 

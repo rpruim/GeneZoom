@@ -14,6 +14,9 @@ import cPickle
 import random
 import pprint
 import linecache
+import string
+import gzip
+import bz2
 
 # Creates subdictionaries from dictionaries containing only a specified subset of the original keys  
 extract = lambda keys, dict: reduce(lambda x, y: x.update({y[0]:y[1]}) or x, map(None, keys, map(dict.get, keys)), {})
@@ -22,7 +25,7 @@ extract = lambda keys, dict: reduce(lambda x, y: x.update({y[0]:y[1]}) or x, map
 def bufcount(filename, max=100000):
     f = open(filename)                  
     lines = 0
-    buf_size = 1024 * 1024
+    buf_size = 64 * 1024 * 1024
     read_f = f.read # loop optimization
 
     buf = read_f(buf_size)
@@ -32,19 +35,35 @@ def bufcount(filename, max=100000):
 
     return lines
 
+def multiopen( filename, format ):
+	try:
+		filehandle = gzip.open(filename, format)                  
+		filehandle.read(1024)
+		filehandle.seek(0)
+	except IOError:
+		try:
+			filehandle = bz2.BZ2File(filename, format)                  
+			filehandle.read(1024)
+			filehandle.seek(0)
+		except IOError:
+			filehandle = open(filename, format)                  
+			filehandle.read(1024)
+			filehandle.seek(0)
 
+	return(filehandle)
 
 class VCFdata:
-	headerRE   = re.compile(r'#CHROM')
-	headerRE   = re.compile(r"(?P<meta>.+)(?P<header>#CHROM[^\n]+)\n", re.M)
-	headerRE   = re.compile(r"(.+?)(#CHROM[^\n]+)", re.M + re.DOTALL)
-	firstLocus = re.compile(r'\n(\d+)\t([^\t]+)\t')
+	headerRE     = re.compile(r'#CHROM')
+	headerRE     = re.compile(r"(?P<meta>.+)(?P<header>#CHROM[^\n]+)\n", re.M)
+	headerRE     = re.compile(r"(.+?)(#CHROM[^\n]+)", re.M + re.DOTALL)
+	firstLocusRE = re.compile(r'\n(\d+)\t([^\t]+)\t')
 
 	def __init__ (self, filename, blocksize=1024*1024):
 		self._filename = filename
 		self._filesize = os.path.getsize(filename)
-		self._filehandle = open(filename)                  
-		self._blocksize = blocksize # should be large enough to contain header
+		self._filehandle = multiopen(filename,'r')
+
+		self._blocksize = blocksize # should be large enough to contain meta and header info; stretched if not.
 		self._headerStr = None
 		self._metaStr = None
 		self._read_from_file = self._filehandle.read
@@ -64,47 +83,98 @@ class VCFdata:
 			self._headers = self._headerStr.split('\t')
 			self._num_cols = len(self._headers)
 			self._data_start = len(self._metaStr) + len(self._headerStr)
+			self._num_blocks = self._filesize / self._blocksize
 			break
 
-	def fetch_block(self, block):
+	def fetch_block(self, block, raw=False):
 		self._filehandle.seek(self._data_start + block * self._blocksize)
 		blockStr = self._read_from_file(self._blocksize)
+		if raw:
+			return blockStr
 		if len(blockStr) < 1:
 			return []
 		while not blockStr[-1] == '\n':
 			blockStr = blockStr + self._read_from_file(1)
-		block = [ l.split('\t') for l in blockStr.split('\n') ]
-		block = [ item for item in block if len(item) == self._num_cols]
+		# block = [ l.split('\t') for l in blockStr.split('\n') ]
+		block = [ VCFrow(l) for l in blockStr.split('\n') ]
+		block = [ r for r in block if len(r) == self._num_cols ]
 		return block
 
-	def first_pos_in_block(self, block):
+	# optimize this later by just grabbing position?
+	def first_locus_in_block(self, block):
 		try:
-			block = self.fetch_block(block)
-			chrom = block[0][0]
-			pos = block[0][1]
-			return (chrom, pos)
-		except:
+			blockStr = self.fetch_block(block, raw=True)
+			m = VCFdata.firstLocusRE.search(blockStr)
+			chrom = int( m.groups()[0] )
+			pos = int( m.groups()[1] )
+			return ( chrom, pos )
+		except Exception as e: 
+			print >> sys.stderr, "Trouble in first_locus_in_block(", block, ")"
+			print >> sys.stderr, e
+			print >> sys.stderr, type(e)
 			return None
 
-	def last_pos_in_block(self, block):
+	def first_locus_in_block_alt(self, block):
+		self._filehandle.seek(self._data_start + block * self._blocksize)
+		while not self._filehandle.read(1) == '\n':
+			pass
+		chunk = self._filehandle.read(100)
+		firstLocusRE = re.compile(r'([^\t]+)\t([^\t]+)\t')
+		m = firstLocusRE.search(chunk)
+		chrom = int( m.groups()[0] )
+		pos = int( m.groups()[1] )
+		return ( chrom, pos )
+
+	def last_locus_in_block(self, block):
 		try:
 			block = self.fetch_block(block)
-			chrom = block[-1][0]
-			pos = block[-1][1]
-			return (chrom, pos)
-		except:
+			return block[-1].getlocus()
+		except IndexError as e:
+			print >> sys.stderr, "Trouble in last_locus_in_block(", block, ")"
+			print >> sys.stderr, e
+			print >> sys.stderr, type(e)
 			return None
 
 	def fetch_range(self, chrom, start, stop):
-		return None
+		search_space = [0, self._num_blocks-1]
+		start_locus = (chrom, start)
+		stop_locus = (chrom, stop)
+		while search_space[0] + 1 < search_space[1]:
+			#print >> sys.stderr, " ", str(search_space), "." ,
+			mid = int( sum(search_space) / 2 )
+			#print >> sys.stderr,  ".." ,
+			if self.first_locus_in_block(mid) > start_locus:
+				search_space[1] = mid
+			else:
+				search_space[0] = mid
+			#print >> sys.stderr, "...",
+		#print >> sys.stderr, "  "
+		start_block = search_space[0]
 
+		search_space = [start_block, self._num_blocks-1]
+		while search_space[0] + 1 < search_space[1]:
+			#print >> sys.stderr, "  ", str(search_space),
+			mid = int( sum(search_space) / 2 )
+			if self.first_locus_in_block(mid+1) < stop_locus:
+				search_space[0] = mid
+			else:
+				search_space[1] = mid
+		#print >> sys.stderr, "  "
 
+		stop_block = search_space[0]
+
+		results = []
+		for block in range(start_block, 1+stop_block):
+			results.extend( self.fetch_block(block) )
+
+		return [r for r in results if r.getlocus() >= start_locus and r.getlocus() <= stop_locus]
 
 	# return a string summarizing the data contained in VCF
 	def __repr__(self):
-		repr = self._headerStr
-		repr = repr + '\n' + str(self._filesize / 1024) + ' kb'
-		repr = repr + '\n' + str(self._filesize / self._blocksize) + ' blocks'
+		repr = "VCF file"
+#		repr = repr + self._headerStr
+		repr = repr + '\n\t' + str(self._filesize / (1024 * 1024) ) + ' Mb'
+		repr = repr + '\n\t' + str(self._num_blocks) + ' blocks'
 		return repr
 
 	def select(self, chrom, start, stop):
@@ -121,425 +191,69 @@ class VCFrow:
 	def getpos(self):
 		return self._items[1]
 
-class CoordData:
-	data = {}
-	sk = set()
+	def getlocus(self):
+		return ( int(self._items[0]),  int(self._items[1]) )
 
-	def readFromPickle (self, fname):
-		print >> sys.stderr, 'Unpickling coordData...'
-		inputfile = open (fname)
-		self.data = cPickle.load (inputfile)		
-		inputfile.close()
-		self.sk = set (self.data.keys()) # so much faster than lists and tuples for membership checks!
+	def genotypes(self, start=9, stop=None):
+		if stop == None:
+			stop = len(self._items)
+		result = {}
+		for col in range(start, stop):
+			try:
+				keys = string.split(self._items[col], ":")
+				result[ keys[0] ] = 1 + result[ keys[0] ]
+			except KeyError:
+				result[ keys[0] ] = 1 
 
-	def pickle (self, fname):
-		print >> sys.stderr, 'Pickling coordData...'
-		outputfile = open (fname, "w")
-		cPickle.dump (self.data, outputfile, True)
-	 	outputfile.close()
-
-	def get(self, coordslist): # template for this method in derived classes
- 		print >> sys.stderr, 'Warning: coordData\' original get() method invoked. This always returns an empty list' 
-		return([])
-
-	def __getitem__ (self, key):
-		if type(key) is list or type(key) is set or type(key) is tuple:
-			return self.get(key)
-		else:
-			return self.data[key]
-
-	def __iter__ (self):
-		self.current = 0
-		return self
-
-	def next (self):
-		if self.current >= len(self.data.keys()):
-			raise StopIteration
-		else:
-			self.current += 1
-			res = self.data[self.data.keys()[self.current - 1]]
-			res['COORD'] = self.data.keys()[self.current - 1]
-			return res
-
-	def items (self):
-		return self.data.items()
-
-	def keys (self):
-		return self.data.keys()
-
-	def values (self):
-		return self.data.values()
-
-	def __and__(self, other):
-		return self.sk & other.sk
-
-	def __or__(self, other):
-		return self.sk | other.sk
-
-	def __sub__(self, other):
-		return self.sk - other.sk
+		return result
 
 	def __len__(self):
-		return len(self.sk)
+		return len(self._items)
 
 	def __repr__(self):
-		if len(self)<20:
-			return pprint.pformat(self.data)
-		else:
-			print "==Showing first 20 elements=="
-			return pprint.pformat(dict((k, self.data[k]) for k in self.data.keys()[0:20])) 
-
-	def __init__ (self):
-		self.data = {}
-		self.sk = set()
-
-	def __del__ (self):
-		self.data = {}
-		self.sk = set()
-
-
-def getStrain (tupleOfDicts, sampleNo, field="NUM"):
-# given a tuple of dictionaries that have a field (def="NUM")
-# extract the dictionary (assuming it's unique!) with dict[field] == sampleNo
-        i=0
-        ok=0
-        for sample in tupleOfDicts:            
-	        if sample['NUM'] == sampleNo:
-        		ok = 1
-                        break
-                i+=1
-        if ok:
-        	return tupleOfDicts[i]
-	else:
-		return None
+		return string.join(self._items, "\t")
 
 def coord (c):
         ccoord = re.search("(.+)@(.+)", c)
         return (ccoord.group(1), ccoord.group(2))
 
-class VCF(CoordData):
-        # note CoordData.data in this case is a dictionary of dictionaries 
-	# containing pool-wide tags (including also "ALT" and "QUAL")) plus 
-	# sample-specific info that is stored as a tuple of dictionaries (one tuple element per sample) under the '_SAMPLES' key
-  
-	# inherits CoordData operators:
-	# -- coords level: y or z; y and z; y - z
-	# -- slices: y[pos]; y[[pos1,pos2,...,posN]]
-	# -- iterator:
-	#     for x in y:
-	# 	  x.keys()[0] # pos
-	#	  x.values[0] # all the rest
-	
-	# Important new operators and differences from CoordData and its other derivatives:
-	#
-	# -- filter:
-	# 	y.filter("COORD in set(['chrX@100', 'chr3@23234'])") or,if the condition includes at least one occurence of '>', '<', or '=', can use a shorthand:
-	#	y["QUAL > 50 and DP < 1 and any('GQ>2')"]
-	#    -- sample-specific tags are accessible via:
-	#		any(cond), all(cond), atleast(N, cond), forsample(sampleNUM, cond)
-	#    -- to compare between sample-specific tags:
-	#		crosscomp(cond), where each sample-specific tag becomes a dictionary with sampleNo as key !
-	#		  Example: y.filter("crosscomp('GT1[1]==GT1[2]')")
-	# Remember that samples have an aux tag, NUM, that tells which ones they are in the order of columns in VCF 
-	#
-	# -- The result of get(), filter() and [] is a class!
-	#	this is so we can do y.filter["AD>12"].field("DP")
-	#
-	# -- get field:
-	#	y.field 
-
-	def readFromFile(self, fname, refcol=3, altcol=4, qualcol=5, infocol=7, sampleformatcol=8, checkNonRef = False, commentChar = '#', verbose = True, readFromList = False):
-		      # all col numbers are 0-based
-			self.data = {}
-			if verbose:
-				print >> sys.stderr, 'Reading variation data...'
-			if readFromList:
-				snpfile = fname
-			else:
-				print >> sys.stderr, '\tOpening ' , fname , '...'
-				snpfile = open (fname)
-			i=0
-			for line in snpfile:
-				line = line.strip()
-				if line[0] == '#':
-					continue
-				linearr = line.split("\t")
-				if checkNonRef:
-					if linearr[refcol].upper() == linearr[altcol].upper():
-						continue
-				pos = linearr[0] + "@" + linearr[1]
-
-				info = {'ALT' : linearr[altcol], 'REF' : linearr[refcol], 'QUAL' : float(linearr[qualcol])}
-
-				infoarr = linearr[infocol].split(";")
-				for field in infoarr:
-					ft = field.split("=")
-					tag = ft[0]	
-					if re.search("\.", ft[1]):
-						info[tag] = float(ft[1])
-					else:
-						info[tag] = int(ft[1])
-				
-											
-					samlist = []
-					strfields = linearr[sampleformatcol].split(":")
-					samcount = 1
-					for col in range(sampleformatcol+1, len(linearr)):
-						strarr = linearr[col].split(":")
-		
-						if strarr[0] == "./.":
-							samcount += 1
-							continue
-		
-						thissam = {'NUM' : samcount}
-						tagi = 0
-						for tag in strfields:
-							#print strarr, tagi, tag, strarr[tagi]
-							if tag=="GT":
-								gts = re.split("\||\/", strarr[tagi])				
-								for gi in range(0, len(gts)):
-									if gts[gi]=="0":
-										thissam['GT%d' % (gi+1)] = "ref"
-									elif gts[gi]=="1":
-										thissam['GT%d' % (gi+1)] = "alt"
-							elif tag=="AD":
-								ads = strarr[tagi].split(",")
-								thissam['ADref'] = int(ads[0])
-								thissam['ADalt'] = int(ads[1])
-							elif tag=="GL":		
-								gls = strarr[tagi].split(",")
-								thissam['GLrr'] = float(gls[0])
-								thissam['GLra'] = float(gls[1])
-								thissam['GLaa'] = float(gls[2])
-							else:
-								if re.search("\.", strarr[tagi]):
-								    thissam[tag] = str(strarr[tagi])  # was float
-								else:
-								    thissam[tag] = str(strarr[tagi])    # was int
-							tagi = tagi+1
-						samlist.append(thissam)
-						samcount += 1
-					info['_SAMPLES'] = tuple(samlist)
-
-				self.data[pos] = info
-
-				i = i+1
-				if (not (i+1) % 100000) and verbose:
-					print >> sys.stderr, '.',
-
-			self.sk = set (self.data.keys())
-			if not readFromList:
-				snpfile.close()
-			if verbose:
-				print >> sys.stderr, '\nDone!\n'
-
-	def readFromList(self, list, verbose = False, *vcfFormatArgs):
-			self.readFromFile(list, readFromList=True, verbose = verbose, *vcfFormatArgs)
-
-	def get(self, coordslist, verbose = False):
-	# Important! Returns a VCF class object and not a dictionary!
-
-			keysInCoordsList = [thiskey for thiskey in coordslist if thiskey in self.sk]
-			vcfInCoordsList = extract(keysInCoordsList, self.data) # note that the result is a dictionary of tuples - just like self.data!
-
-			if verbose:
-				print >> sys.stderr, 'len keysInCoordsList = ', len(keysInCoordsList)
-
-			res = VCF()
-			res.data = vcfInCoordsList
-			res.sk = set(vcfInCoordsList.keys())
-			return res
-
-	def filter(self, expr):
-	# expressions can use COORD, CHR, POS, REF, ALT and QUAL as well as any tag from the INFO field (in upper case!)
-	# additionally, for the level of samples, it can be any("condition"), all("condition"), atleast(N, "condition") or forsample(sampleN, condition)
-	# note samples with "./." for a SNP are not included (it may cause more confusion if they are...)
-
-			pos = 0 # stub; should be defined below when iterating through self
-			this = {} # same as above
-
-			def __populatens(sample):
-				ns = {}
-				for (tag, val) in sample.items():
-					ns[tag] = val
-				return ns
-
-			def any(condition):
-				# note pos and this come from the scope of self.filter()
-				for sample in this['_SAMPLES']:
-					ns = __populatens(sample)
-					if eval(condition, ns):
-						return True
-				return False
-						
-			def all(condition):
-				# note pos and this come from the scope of self.filter
-				for sample in this['_SAMPLES']:
-					ns = __populatens(sample)
-					if not eval(condition, ns):
-						return False
-				return True
-
-			def atleast(n, condition):
-				passed = 0
-				for sample in this['_SAMPLES']:
-					ns = __populatens(sample)
-					if eval(condition, ns):
-						passed += 1
-				return (passed >= n)
-
-			def forsample(sampleNo, condition):
-				# will return false if sampleNo does not exist
-				sample = getStrain(this['_SAMPLES'], sampleNo)
-				if not sample:
-					return False
-				ns = __populatens(sample)
-				return eval(condition, ns) 
-
-			def crosscomp(condition):
-				ns = {}
-				for sample in this['_SAMPLES']:
-					num = sample['NUM']
-					for (tag, val) in sample.items():
-						if tag=='NUM':
-							continue
-						if not tag in ns:
-							ns[tag] = {}
-						ns[tag][num] = val
-				try:
-					return eval(condition, ns)
-				except (KeyError, NameError):
-					return False
-
-			which = []
-			for (pos, this) in self.items():
-				ns = {'any' : any, 'all' : all, 'atleast' : atleast, 'forsample' : forsample, 'crosscomp' : crosscomp}
-				ns['COORD'] = pos
-				ccoord = re.search("(.+)@(.+)", pos)
-				ns['CHR'] = ccoord.group(1)
-				ns['POS'] = ccoord.group(2)
-				for (tag, val) in this.items():
-					ns[tag] = val
-				if eval(expr, ns):
-					which.append(ns['COORD'])
-			return self.get(set(which))
-
-
-	def field(self, field, sampleNo = None):
-			res = []
-			if field=="COORD":
-				return self.keys()
-			elif field=="CHR":
-				return [re.search("(.+)@", coord).group(1) for coord in self.keys()]
-			elif field=="POS":
-				return [re.search("@(.+)", coord).group(1) for coord in self.keys()]
-			elif not sampleNo:
-				for this in self.values():
-					res.append(this[field])
-			else:
-				for this in self.values():
-					# returns -1 if sample not found
-					thisStrain = getStrain(this['_SAMPLES'], sampleNo)
-					if thisStrain:
-						res.append(thisStrain[field])
-			return res
-
-	def __getitem__ (self, key):
-			if type(key) is list or type(key) is set or type(key) is tuple:
-				return self.get(key)
-			elif (type(key) is str and re.search("[><=]", key)):
-				return self.filter(key)
-			else:
-				res = VCF()
-				res.data = {key: self.data[key]}
-				res.sk = set([key,])
-				return res
-
-def VCFfilter(fname, filter=None, field=None, count=False, chunk = 10000, maxchunks = None, *vcfFormatArgs):
-	# Reads a VCF file chunk by chunk, performing filtering and field extraction (or element counting) for each chunk.
-	#
-	# Output:
-	# if field==None and count==False: a VCF object containing all elements passing the filter (or all elements if filter is not defined),
-	# if field is specified: a list containing this field for all elements passing the filter,
-	# if count is specified: an integer corresponding to the total number of elements passing the filter.
-	#
-	# With a test VCF consisting of 50k lines, the optimum chunk size was ~10000. 
-	# The limiting stage seems to be the merger of dictionaries, so it may actually perform faster with filtering than without it.
-
-		if field and count:
-			raise ValueError('When count is True, field should be None, because only the count of entries passing the filter will be returned')
-		f = open(fname)
-		filtered = {} # filtered VCF.data
-		yff = [] # (filtered) VCF.data field
-		counter = 0
-		nchunks = 0
-		while True:
-			l=[]
-			i=0
-			stp=False
-			while i<chunk:
-				line = f.readline()
-				if len(line):
-					l.append(line)
-					i+=1
-				else:
-					stp = True
-					break
-
-			print >> sys.stderr, ".",
-			nchunks += 1
-			if nchunks >= maxchunks and maxchunks:
-				stp = True
-
-			y = VCF()
-			y.readFromList(l, *vcfFormatArgs)
-			if filter:
-				y = y.filter(filter)
-                
-			if count:
-        	                counter+=len(y)
-			elif field:
-				if type(field)==str:
-					yff.extend(y.field(field))
-				elif len(field)==2:
-					yff.extend(y.field(field[0], field[1]))
-				else:
-					raise ValueError('field can either be a string or a tuple of size 2: (string, sampleNo)')
-			else:
-                        	filtered = dict(filtered, **y.data)
-
-			l = []
-			if stp:
-				break
-		f.close()
-		print >> sys.stderr, ""
-
-		if count:
-			return counter
-		elif field:
-			return yff
-		else:
-			z = VCF()
-			z.data = filtered
-			z.sk = set(z.data.keys())
-			return (z)
-
 if __name__ == '__main__':
-	filename = '../TestData/458_samples_from_bcm_bi_and_washu.annot.vcf'
 	filename = '../TestData/NA12878.HiSeq.WGS.bwa.cleaned.raw.subset.b37.vcf'
+	filename = '../TestData/NA12878.HiSeq.WGS.bwa.cleaned.raw.subset.b37.vcf.gz'
+	filename = '../TestData/458_samples_from_bcm_bi_and_washu.annot.vcf.gz'
+	filename = '../TestData/458_samples_from_bcm_bi_and_washu.annot.vcf'
+#	v = VCFdata(filename, 1024*64)
 	v = VCFdata(filename, 1024*1024)
 	print v
-	contents = v.fetch_block(0)
-	print [ len(c) for c in contents ] 
+#	print v.first_locus_in_block(0)
+#	print v.last_locus_in_block(0)
 
-	print v.first_pos_in_block(0)
-	print v.last_pos_in_block(0)
+#	print v.first_locus_in_block(1)
+#	print v.last_locus_in_block(1)
 
-	print v.first_pos_in_block(1)
-	print v.last_pos_in_block(1)
+#	print v.first_locus_in_block(5649)
+#	print v.last_locus_in_block(5649)
 
-	print v.first_pos_in_block(5648)
-	print v.last_pos_in_block(5648)
+#	bl = 4
+#	print 'block ' + str(bl), 'contains', 
+#	contents = v.fetch_block(bl)
+#	print len( contents ), # [ c.getlocus() for c in contents ] 
+#	print "loci."
 
-	contents = v.fetch_block(5649)
-	print [ len(c) for c in contents ] 
+#	print "\tFirst Locus:  ",  v.first_locus_in_block(bl)
+
+	if False:
+		for i in range(v._num_blocks):
+			print >> sys.stderr, i, v.first_locus_in_block(i)
+
+	if True:
+		pos = 156705468 + 800000
+		offset = 5000
+		stuff = v.fetch_range(1, pos, pos + offset)
+		print 'fetch_range(', pos, pos+offset, ')...'
+		# print string.join( [str(l) for l in stuff], "\n" )
+		for c in stuff:
+			print (c.getlocus(), c.genotypes()) 
+		print '\nTotal: ', len(stuff), 'markers'
+
+

@@ -7,6 +7,7 @@ import sys
 conf_file = find_relative("conf/gz.conf");
 execfile(conf_file);
 
+gz_options['R'] = False
 
 if gz_options['R']:
 	try:
@@ -42,11 +43,11 @@ if not gz_options['R']:
 		return(result)
 
 	def read_csv(filename, delim=','):
-		data = np.genfromtxt(filename, delimiter=delim, names=True)
+		data = np.genfromtxt(filename, delimiter=delim, names=True, dtype=None)
 		return post_process_data(data)
 
 	def read_table(filename, delim=' '):
-		data = np.genfromtxt(filename, delimiter=delim, names=True)
+		data = np.genfromtxt(filename, delimiter=delim, names=True, dtype=None)
 		return post_process_data(data)
 
 if __name__ == "__main__":

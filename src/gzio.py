@@ -7,6 +7,7 @@ import sys
 conf_file = find_relative("conf/gz.conf");
 execfile(conf_file);
 
+
 if gz_options['R']:
 	try:
 		import rpy2.robjects as robjects
@@ -33,12 +34,20 @@ if gz_options['R']:
 
 if not gz_options['R']:
 	import numpy as np
+
+	def post_process_data(data):
+		result = {}
+		for i in range(len(data[0])):
+			result[data.dtype.names[i]] = [ x[i] for x in data ]
+		return(result)
+
 	def read_csv(filename, delim=','):
-		return np.genfromtxt(filename, delimiter=delim, names=True)
+		data = np.genfromtxt(filename, delimiter=delim, names=True)
+		return post_process_data(data)
 
 	def read_table(filename, delim=' '):
-		return np.genfromtxt(filename, delimiter=delim, names=True)
-
+		data = np.genfromtxt(filename, delimiter=delim, names=True)
+		return post_process_data(data)
 
 if __name__ == "__main__":
 	fixedfile = "../testing/data/458_traits.txt"

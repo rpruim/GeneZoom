@@ -7,7 +7,7 @@ import sys
 conf_file = find_relative("conf/gz.conf");
 execfile(conf_file);
 
-gz_options['R'] = False
+#gz_options['R'] = False
 
 if gz_options['R']:
 	try:

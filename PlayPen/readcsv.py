@@ -10,22 +10,26 @@ Rutils = importr('utils')
 readcsv = Rutils.read_csv
 readtable = Rutils.read_table
 
-filename = "../TestData/458_traits.fixed"
+fixedfile = "../testing/data/458_traits.fixed"
+csvfile = "../testing/data/458_traits.csv"
 
-traitData = readtable(filename, header=True)
-
+traitData = readtable(fixedfile, header=True)
+traitData2 = readcsv(csvfile, header=True)
 
 for i in range(3):
 	print traitData.names[i]
 	print traitData[i][0:10]
+	print traitData2[i][0:10]
 
 print "=" * 60
 # to keep strings as strings rather than factors:
-traitData = readtable(filename, header=True,stringsAsFactors=False)
+traitData = readtable(fixedfile, header=True)
+traitData2 = readcsv(csvfile, header=True)
 
 for i in range(3):
 	print traitData.names[i]
 	print traitData[i][0:10]
+	print traitData2[i][0:10]
 
 
 

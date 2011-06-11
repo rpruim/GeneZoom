@@ -91,6 +91,13 @@ def die(msg):
   print >> sys.stderr, msg;
   sys.exit(1);
 
+# Continue program after warning message.
+def warn(msg, e=None):
+  print >> sys.stderr, msg;
+  if e:
+	  print >> sys.stderr, e
+  print >> sys.stderr, "\n"
+
 # Tests to see if interval i1 is completely contained within interval i2.
 # i1 should be a list or tuple [start,end], same with i2
 def interval_contained(i1,i2):

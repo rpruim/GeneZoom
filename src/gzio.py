@@ -5,9 +5,12 @@ import sys
 
 # Load program constants.
 conf_file = find_relative("conf/gz.conf");
-execfile(conf_file);
+if conf_file:
+	execfile(conf_file)
+else:
+	warn('Unable to find configuration file.  Preceding anyway.')
 
-#gz_options['R'] = False
+gz_options['R'] = False
 
 if gz_options['R']:
 	try:

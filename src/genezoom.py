@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 
-import gzio
 from gzutils import *
+import gzio
 from vcfutils import *
 from optparse import OptionParser
 
 # Load program constants.
-conf_file = find_relative("conf/gz.conf");
-execfile(conf_file);
+conf_file = find_relative("conf/gz.conf")
+if conf_file:
+	execfile(conf_file)
+else:
+	die('Unable to find configuration file.')
 
 
 def SetUp():
@@ -19,6 +22,13 @@ def SetUp():
 		action="store_false", 
 		default=True,
 		help="don't print status messages to stdout"
+		)
+	parser.add_option(
+		"-i", "--interact",
+		dest="interact", 
+		action="store_true", 
+		default=False,
+		help="Enter interactive python session after running."
 		)
 	parser.add_option(
 		"-v", "--vcf", 
@@ -74,8 +84,17 @@ def main( options ):
 		print >> sys.stderr, g
 		print "=" * 60
 
+	return {'vcf': vcf, 'status': status}
+
 if __name__ == "__main__":
 	import tabix
+	from IPython.Shell import IPShellEmbed  # enter interactive ipython
 	options, args = SetUp()
-	main(options)
+	session = main(options)
+	if options.interact:
+		ipshell = IPShellEmbed([])
+		ipshell()
+  	else:
+		exit(0)
+
 

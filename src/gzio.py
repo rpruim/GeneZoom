@@ -24,10 +24,10 @@ if gz_options['R']:
 			return(result)
 
 		def read_csv(filename, delim=','):
-			return post_process_data( Rutils.read_csv(filename, sep=delim, header=True) )
+			return post_process_data( Rutils.read_csv(filename, sep=delim, header=True, stringsAsFactors=False) )
 
 		def read_table(filename, delim=''):
-			return post_process_data( Rutils.read_table(filename, sep=delim, header=True) )
+			return post_process_data( Rutils.read_table(filename, sep=delim, header=True, stringsAsFactors=False) )
 
 	except:
 		print sys.stderr >> "Rpy2 unavailable.  Proceeding with alternate tools."

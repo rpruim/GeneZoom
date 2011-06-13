@@ -37,10 +37,10 @@ def multiEllipses(circles, xLoc, circleLoc, circleWidth, circleHeight, colorShad
 #create a dotgraph, receiving a crosstable and an xLoc
 def dotGraph(stuff, xLoc):
     #size is the scale of the ellipse/circle
-    size=.5
+    size=1
     #circleWidth and circleHeight are the basic sizes of the ellipses (not yet properly scaled)
-    circleWidth=size
-    circleHeight=.1
+    circleWidth=1*size
+    circleHeight=.2*size
     for i in range(2):
         #Graph of the first list of data ('case') in our data set
         if i==0:
@@ -85,7 +85,9 @@ if __name__ == "__main__":
     plt.xlabel("Chromosome")
     ax1 = fig.add_subplot(111)
     center=start+((end-start)/2)
-    plt.axis([center-30, center+30, -2, 2])
+    #half of the total desired range shown
+    halfrange=30
+    plt.axis([center-halfrange, center+halfrange, -2, 2])
     ax1.add_line(Line2D([0, 100000000000], [0, 0],linewidth=1, color='black'))
     ax1.grid(True)
     fig.subplots_adjust(bottom=0.2)
@@ -97,8 +99,8 @@ if __name__ == "__main__":
     #plt.xticks(xrange, xlabels, rotation=65)
     y=[-1,0,1]
     plt.yticks(y,('case', '','control'), rotation=90)
-    #insert method to get vector from traits file here
     
+    #insert method to get vector from traits file here
     #generate some example data, as reading traits isn't yet working for me.  Replace this with real trait info.
     traitstuff=[]
     j=0
@@ -110,9 +112,9 @@ if __name__ == "__main__":
         j+=1
     
     xLoc=start
+    #for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
     for v in vstuff:
         xTable=CrossTable.xTable(traitstuff, v.genotypes())
         dotGraph(xTable, v.getpos())
     plt.show()
 ##################################################################################
-

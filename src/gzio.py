@@ -9,6 +9,7 @@ if conf_file:
 	execfile(conf_file)
 else:
 	warn('Unable to find configuration file.  Preceding anyway.')
+	gz_options = {}
 
 gz_options['R'] = False
 
@@ -52,6 +53,25 @@ if not gz_options['R']:
 	def read_table(filename, delim=' '):
 		data = np.genfromtxt(filename, delimiter=delim, names=True, dtype=None)
 		return post_process_data(data)
+
+def multiopen( filename, format='r' ):
+	try:
+		import gzip
+		filehandle = gzip.open(filename, format)                  
+		filehandle.read(1024)
+		filehandle.seek(0)
+	except IOError, ImportError:
+		try:
+			import bz2
+			filehandle = bz2.BZ2File(filename, format)                  
+			filehandle.read(1024)
+			filehandle.seek(0)
+		except IOError, ImportError:
+			filehandle = open(filename, format)                  
+			filehandle.read(1024)
+			filehandle.seek(0)
+
+	return(filehandle)
 
 if __name__ == "__main__":
 	fixedfile = "../testing/data/458_traits.txt"

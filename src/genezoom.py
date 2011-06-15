@@ -4,6 +4,8 @@ from gzutils import *
 import gzio
 from vcfutils import *
 from optparse import OptionParser
+import dotGraph
+import logging
 
 # Load program constants.
 conf_file = find_relative("conf/gz.conf")
@@ -23,6 +25,22 @@ def SetUp():
 		default=True,
 		help="don't print status messages to stdout"
 		)
+
+	parser.add_option(
+		"-b", "--build",
+		dest="build", 
+		default='hg19',
+		help="hg build (UCSC database for gene data)"
+		)
+
+	parser.add_option(
+		"--genes",
+		dest="genes", 
+		default='refFlat',
+		metavar="refFlat|knownGene|filename",
+		help="UCSC table or file to use for gene information"
+		)
+
 	parser.add_option(
 		"-i", "--interact",
 		dest="interact", 
@@ -30,24 +48,28 @@ def SetUp():
 		default=False,
 		help="Enter interactive python session after running."
 		)
+
 	parser.add_option(
 		"-v", "--vcf", 
 		dest="vcf_file", 
 		default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz",
 		help ="vcf", metavar="FILE"
 		)
+
 	parser.add_option(
 		"-t", "--traits", 
 		dest="trait_file", 
 		default="../testing/data/458_traits.csv",
 		help="trait file", metavar="FILE"
 		)
+
 	parser.add_option(
 		"-g", "--groups", 
 		dest="groups", 
 		default="T2D",
 		help="grouping variable", metavar="STRING"
 		)
+
 	parser.add_option(
 		"-r", "--region", 
 		dest="region", 
@@ -83,17 +105,28 @@ def main( options ):
 		g = xtally( status, extract_genotypes(row) )
 		print >> sys.stderr, g
 		print "=" * 60
+	print extract_genotypes(row)[:10]
 
-	return {'vcf': vcf, 'status': status}
+	import plotting
+	fig = dotGraph.SetupPlot(options.start, options.stop)
+	for row in results:
+		crossTable=CrossTable(status, extract_genotypes(row) )
+		dotGraph(crossTable, extract_pos(row))
+
+	return { 'vcf': vcf, 'status': status, 'fig':fig }
 
 if __name__ == "__main__":
 	import tabix
-	from IPython.Shell import IPShellEmbed  # enter interactive ipython
 	options, args = SetUp()
 	session = main(options)
 	if options.interact:
-		ipshell = IPShellEmbed([])
-		ipshell()
+		try: 
+			from IPython.Shell import IPShellEmbed  # enter interactive ipython
+			ipshell = IPShellEmbed([])
+			ipshell()
+		except:
+			logging.critical("Unable to locate ipython, so shutting down without entering interactive mode.")
+
   	else:
 		exit(0)
 

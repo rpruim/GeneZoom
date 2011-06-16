@@ -13,12 +13,24 @@ from gzutils import *
 import logging
 
 class BED:
-	def __init__(self, filename):
+	def __init__(self, filename, keys=None):
 		fh = multiopen( filename )
-		self._rows = [BEDrow(s) for s in fh.readlines() ]
+		self._keys = keys
+		self._key2index = {}
+		index = 0
+		try:
+			for key in keys:
+				self._key2index[key] = index
+				index = index + 1
+		except TypeError:
+			self._key2index = {}
 
-	def __getitem__(self, i):
-		return self._rows[i]
+		self._rows = [BEDrow(s, parent=self) for s in fh.readlines() ]
+
+	def __getitem__(self, r, c=None):
+		if c == None:
+			return self._rows[r]
+		return self._rows[r][c]
 
 	def get_all_rows(self):
 		return [r for r in self._rows ]
@@ -27,37 +39,26 @@ class BED:
 		if name == '':
 			exact=False
 		if exact:
-			return [r for r in self._rows if name == r.get_name() ]
+			return [r for r in self._rows if name == r['name'] ]
 		else:
-			return [r for r in self._rows if re.search(name, r.get_name()) ]
+			return [r for r in self._rows if re.search(name, r['name']) ]
 
 class BEDrow:
-	def __init__(self, s):
+	def __init__(self, s, parent=None):
 		self._contents = s.strip().strip(',').split('\t') 
+		self._parent = parent
 
 	def __repr__(self):
 		return ":".join(self._contents)
+
+	def __getitem__(self, item):
+		if type(item) in [int, long]:
+			return self._contents[item]
+		return self._contents[self._parent._key2index[item]]
 	
-	def get_geneName(self):
-		return self._contents[0]
-
-	def get_name(self):
-		return self._contents[1]
-
-	def get_chr(self):
-		return self._contents[2]
-
-	def get_strand(self):
-		return self._contents[3]
-
-	def get_txStart(self):
-		return int(self._contents[4])
-
-	def get_txEnd(self):
-		return int(self._contents[5])
 
 	def get_txRange(self):
-		return (self.get_txStart(), self.get_txEnd())
+		return (self['txStart'], self['txEnd'])
 
 	def get_utr(self):
 		result = [ (min(a,b), max(a,b)) for a, b in zip(self.get_txRange(), self.get_cdsRange()) ]
@@ -66,23 +67,14 @@ class BEDrow:
 				result[i] = tuple()
 		return result
 
-	def get_cdsStart(self):
-		return int(self._contents[6])
-
-	def get_cdsEnd(self):
-		return int(self._contents[7])
-
 	def get_cdsRange(self):
-		return (self.get_cdsStart(), self.get_cdsEnd())
-
-	def get_exon_count(self):
-		return int(self._contents[8])
+		return (self['cdsStart'], self['cdsEnd'])
 
 	def get_exonStarts(self):
-		return [int(a) for a in self._contents[9].split(',') if len(a) > 0]
+		return [int(a) for a in self['exonStarts'].split(',') if len(a) > 0]
 
 	def get_exonEnds(self):
-		return [int(a) for a in self._contents[10].split(',') if len(a) > 0]
+		return [int(a) for a in self['exonEnds'].split(',') if len(a) > 0]
 
 	def get_exons(self):
 		return [ (a,b) for a,b in zip( self.get_exonStarts(), self.get_exonEnds() ) ]
@@ -90,14 +82,30 @@ class BEDrow:
 
 if __name__ == "__main__":
 
-	bed = BED('../testing/data/refFlat.txt.gz.1')
+	refFlatKeys = ['geneName','name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts','exonEnds']
+	knownGeneKeys = ['name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts','exonEnds',
+			'proteinID','alignID']
+	refFlat = BED('../testing/data/refFlat.txt.gz.1', keys=refFlatKeys)
+	knownGene = BED('../testing/data/knownGene.txt', keys=knownGeneKeys)
 
-	for i in range(5):
-		r = bed[i]
-		print r.get_name(), r.get_chr(), r.get_strand(), r.get_txRange(), r.get_cdsRange()
-		print '\texons: ', r.get_exons() 
-		print '\tUTR:   ', r.get_utr()
+	for i in range(3):
+		r = refFlat[i]
+		print r['name'], r['chrom'], r['strand'] 
+		print '\t txRange:  ',r.get_txRange() 
+		print '\tcdsRange:  ',r.get_cdsRange()
+		print '\t   exons: ', r.get_exons() 
+		print '\t     UTR: ', r.get_utr()
+		print '\n'
+	print refFlat.get_rows('NR_026820')
+	print "=" * 60
+	for i in range(3):
+		r = knownGene[i]
+		print r['name'], r['chrom'], r['strand'] 
+		print '\t txRange:  ',r.get_txRange() 
+		print '\tcdsRange:  ',r.get_cdsRange()
+		print '\t   exons: ', r.get_exons() 
+		print '\t     UTR: ', r.get_utr()
 		print '\n'
 
-	print bed.get_rows('NR_026820')
+	print knownGene.get_rows('NR_026820')
 	

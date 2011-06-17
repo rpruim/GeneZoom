@@ -23,6 +23,19 @@ import decimal
 import fnmatch
 from which import which_files
 
+def check(expression, msg=None):
+	if msg == None:
+		pass
+	else:
+		print "\n", msg, "... ",
+	try:
+		assert(expression)
+		print "Pass ",
+		return(True)
+	except:
+		print "Fail ",
+		return(False)
+
 def find_relative(file):
   full_path = None;
   

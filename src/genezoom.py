@@ -4,7 +4,8 @@ from gzutils import *
 import gzio
 from vcfutils import *
 from optparse import OptionParser
-import dotGraph
+import dotGraph as dg
+from CrossTable import CrossTable
 import logging
 
 # Load program constants.
@@ -52,7 +53,7 @@ def SetUp():
 	parser.add_option(
 		"-v", "--vcf", 
 		dest="vcf_file", 
-		default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz",
+		default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
 		help ="vcf", metavar="FILE"
 		)
 
@@ -97,21 +98,21 @@ def main( options ):
 	print >> sys.stderr, [a for a in traits]
 	status = traits[options.groups]
 	print >> sys.stderr, tally(status)
-	vcf = tabix.Tabix( options.vcf_file )
+	vcf = vcfReader( options.vcf_file )
 	print >> sys.stderr, vcf
-	results = vcf.query(options.chrom,options.start,options.stop)
+	results = vcf.query(options.chrom, options.start, options.stop)
 	
 	for row in results:
-		g = xtally( status, extract_genotypes(row) )
+		g = xtally( status, row.get_genotypes() )
 		print >> sys.stderr, g
 		print "=" * 60
-	print extract_genotypes(row)[:10]
+	print row.get_genotypes(row)[:10], "..."
 
 	import plotting
-	fig = dotGraph.SetupPlot(options.start, options.stop)
+	fig = dg.SetupPlot(options.start, options.stop)
 	for row in results:
-		crossTable=CrossTable(status, extract_genotypes(row) )
-		dotGraph(crossTable, extract_pos(row))
+		crossTable=CrossTable( status, row.get_genotypes() )
+		dg.dotGraph( fig, crossTable, row.get_pos() )
 
 	return { 'vcf': vcf, 'status': status, 'fig':fig }
 

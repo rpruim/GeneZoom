@@ -38,21 +38,64 @@ if gz_options['R']:
 		gzOptions['R'] = False
 
 if not gz_options['R']:
-	import numpy as np
+	try:
+		#assert (False == True)
+		import numpy as np
 
-	def post_process_data(data):
-		result = {}
-		for i in range(len(data[0])):
-			result[data.dtype.names[i]] = [ x[i] for x in data ]
-		return(result)
+		def post_process_data(data):
+			result = {}
+			for i in range(len(data[0])):
+				result[data.dtype.names[i]] = [ x[i] for x in data ]
+			return(result)
 
-	def read_csv(filename, delim=','):
-		data = np.genfromtxt(filename, delimiter=delim, names=True, dtype=None)
-		return post_process_data(data)
+		def post_process_data(data):
+			result = {}
+			for i in range(len(data[0])):
+				result[data.dtype.names[i]] = [ x[i] for x in data ]
+			return(result)
 
-	def read_table(filename, delim=' '):
-		data = np.genfromtxt(filename, delimiter=delim, names=True, dtype=None)
-		return post_process_data(data)
+		def read_csv(filename, delim=','):
+			data = np.genfromtxt(filename, delimiter=delim, names=True, dtype=None)
+			return post_process_data(data)
+
+		def read_table(filename, delim=' '):
+			data = np.genfromtxt(filename, delimiter=delim, names=True, dtype=None)
+			return post_process_data(data)
+
+	except:
+		import csv as csv
+
+		def post_process_data(data, headers):
+			result = {}
+			for i in range(len(headers)):
+				try: 
+					result[h] =  [ int(x[i]) for x in data ]
+				except:
+					try:
+						result[headers[i]] =  [ float(x[i]) for x in data ]
+					except:
+						result[headers[i]] =  [ x[i] for x in data ]
+
+			return(result)
+
+		def read_csv(filename, delim=','):
+			fh = open(filename)
+			dialect = csv.Sniffer().sniff(fh.read(1024)) 
+			fh.seek(0)
+			if csv.Sniffer().has_header(fh.read(1024)):
+				fh.seek(0)
+				reader = csv.reader(fh, dialect) 
+				headers = reader.next()
+			else:
+				logging.warning('Unable to interpret csv header row. Proceeding with generic names.')
+				fh.seek(0)
+				reader = csv.reader(fh, dialect) 
+				headers = [ "V"+str(i) for i in range(len(data[0])) ]
+			data = [row for row in reader]
+			return post_process_data(data, headers)
+
+		def read_table(filename, delim=' '):
+			return read_csv(filename, delim=delim)
 
 def multiopen( filename, format='r' ):
 	try:
@@ -83,5 +126,6 @@ if __name__ == "__main__":
 	for key in traitData:
 		print key
 		print traitData[key][0:10]
+		assert( traitData[key][0:10] == traitData2[key][0:10] )
 
 	print "=" * 60

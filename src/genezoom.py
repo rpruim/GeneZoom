@@ -28,6 +28,14 @@ def SetUp():
 		)
 
 	parser.add_option(
+		"-i", "--interact",
+		dest="interact", 
+		action="store_true", 
+		default=False,
+		help="Enter interactive python session after running"
+		)
+
+	parser.add_option(
 		"-b", "--build",
 		dest="build", 
 		default='hg19',
@@ -43,39 +51,43 @@ def SetUp():
 		)
 
 	parser.add_option(
-		"-i", "--interact",
-		dest="interact", 
-		action="store_true", 
-		default=False,
-		help="Enter interactive python session after running."
-		)
-
-	parser.add_option(
 		"-v", "--vcf", 
 		dest="vcf_file", 
 		default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
-		help ="vcf", metavar="FILE"
+		help ="vcf file containing genotypes", 
+		metavar="FILE"
 		)
 
 	parser.add_option(
 		"-t", "--traits", 
 		dest="trait_file", 
 		default="../testing/data/458_traits.csv",
-		help="trait file", metavar="FILE"
+		help="trait file", 
+		metavar="FILE"
 		)
 
 	parser.add_option(
 		"-g", "--groups", 
 		dest="groups", 
 		default="T2D",
-		help="grouping variable", metavar="STRING"
+		help="specify grouping variable", 
+		metavar="STRING"
 		)
 
 	parser.add_option(
 		"-r", "--region", 
 		dest="region", 
 		default='1:68000-70000',
-		help="grouping variable", metavar="chr:start-stop"
+		help="specify region of interest", 
+		metavar="chr:start-stop"
+		)
+
+	parser.add_option(
+		"-p", "--prefix", 
+		dest="prefix", 
+		default="genezoom-out",
+		help ="prefix for output files", 
+		metavar="STRING"
 		)
 
 	(options, args) = parser.parse_args()
@@ -86,8 +98,8 @@ def SetUp():
 		options.chrom = m.groups()[0]
 		options.start = int(m.groups()[1])
 		options.stop = int(m.groups()[2])
-	except Exception as e:
-		print >> sys.stderr, e
+	except Exception:  # as e:
+		#print >> sys.stderr, e
 		die( 'Invalid region specification:  ' + options.region )
 
 	return (options, args)
@@ -106,7 +118,7 @@ def main( options ):
 		g = xtally( status, row.get_genotypes() )
 		print >> sys.stderr, g
 		print "=" * 60
-	print row.get_genotypes(row)[:10], "..."
+	print row.get_genotypes()[:10], "..."
 
 	import plotting
 	fig = dg.SetupPlot(options.start, options.stop)

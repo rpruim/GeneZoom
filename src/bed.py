@@ -107,5 +107,8 @@ if __name__ == "__main__":
 		print '\t     UTR: ', r.get_utr()
 		print '\n'
 
-	print knownGene.get_rows('NR_026820')
-	
+	result = refFlat.get_rows('NR_026820')
+	r = result[0]
+	print( type(r) )
+	print r.get_exons()
+	print [a for a,b in r.get_exons() ]

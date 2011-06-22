@@ -8,43 +8,51 @@ import vcf, re
 import CrossTable
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle
+from matplotlib.patches import Circle, Rectangle, Ellipse
 from matplotlib.lines import Line2D
 from matplotlib.collections import PatchCollection
 from optparse import OptionParser
+import bed
 
 ######################################################
 
 #Method to convert a base pair to its location as a base pair in the exon
+#Returns -1 if the gene is not inside an exon
 def bp2exonbp(tupleList, number):
     sum=0
+    #whether it should be 0-based or 1-based
+    base=0
+    number=int(number)
     for entry in tupleList:
-        if (number>=entry[0])&(number<=entry[1]):
-            return sum+number+1-entry[0]
+        if (number>=entry[0])&(number<entry[1]):
+            return sum+number+1-entry[0]+base-1
         elif (number)<entry[0]:
             return -1
         else:
-            sum=sum+entry[1]-entry[0]+1
+            sum=sum+entry[1]-entry[0]
 
-#draw an ellipse of color color
-#def drawCircle(patches, xLoc, yLoc, radius, colorShade):
-#    c=Circle([xLoc, yLoc], radius, color=colorShade)
-#    patches.append(c)
-#    return patches
+#draw a exon at the proper location
+def drawExon(exonTupleList):
+    #Rectangle (xpos (left), ypos (bottom), width, height, kwargs)
+    patches=[Rectangle((exonTupleList[0][0], -1), 1, 2, fill=False)]
+    for exon in exonTupleList:
+        start=exon[0]
+        end=exon[1]
+        patches.append(Rectangle((start, -1), end-start-1, 2))
+    return PatchCollection(patches, match_original=True)
 
 #draw stacked circles in a number equal to circles
-def multiCircles(patches, circles, xLoc, circleLoc, circleRadius, colorShade):
+def multiCircles(patches, circles, xLoc, circleLoc, circleWidth, circleHeight, colorShade):
     i=0
     #as long as there are circles left to draw, keep drawing them
     while i<circles:
         #Circle(size 2 array detailing xy, width)
-        patches.append(Circle([xLoc, circleLoc], circleRadius, color=colorShade, linewidth=1.0))
-        #patches=drawCircle(patches, xLoc, circleLoc, circleRadius, colorShade)
+        patches.append(Ellipse([xLoc, circleLoc], circleWidth, circleHeight, color=colorShade, linewidth=1.0))
         #if we are drawing downward, draw the next circle below this one, otherwise draw the next circle above
         if circleLoc<0:
-            circleLoc=circleLoc-(circleRadius*2)
+            circleLoc=circleLoc-(circleHeight)
         else:
-            circleLoc=circleLoc+(circleRadius*2)
+            circleLoc=circleLoc+(circleHeight)
         i+=1    
     return circleLoc #so that we know where to start drawing the next circles
 
@@ -52,58 +60,134 @@ def multiCircles(patches, circles, xLoc, circleLoc, circleRadius, colorShade):
 def dotPlot(stuff, xLoc):
     #initialization of our patches, with a blank circle to avoid errors of empty list
     patches=[Circle([xLoc, 0], 1, color='white', alpha=0)] 
-    circleRadius=0.15
+    circleWidth=0.4
+    circleHeight=.1
     for i in range(2):
         #Graph of the first list of data ('case') in our data set
         if i==0:
-            circleLoc=circleRadius
+            circleLoc=circleHeight/2
         else:    
-            circleLoc=-circleRadius
-        #these two lines will probably have to be modified based on size of table, etc.
+            circleLoc=-circleHeight/2
         #how many 0/1 alleles exist, and how many 1/1 alleles exist? This assumes that they are sorted onto the end of the column
         length=len(stuff.getbkeys())
         oneCircles= stuff.valueAt(i, length-2)
         twoCircles=stuff.valueAt(i, length-1)
         if twoCircles!=0:
             colorShade='#ff0000'
-            circleLoc=multiCircles(patches, twoCircles, xLoc, circleLoc, circleRadius, colorShade)
+            circleLoc=multiCircles(patches, twoCircles, xLoc, circleLoc, circleWidth, circleHeight, colorShade)
         if oneCircles!=0:
             colorShade='#00ff00'
-            circleLoc=multiCircles(patches, oneCircles, xLoc, circleLoc, circleRadius, colorShade)
+            circleLoc=multiCircles(patches, oneCircles, xLoc, circleLoc, circleWidth, circleHeight, colorShade)
     return PatchCollection(patches, match_original=True)
 
 def SetupPlot(start, end):
         #set up the graph format
-        fig=plt.figure()
-        plt.title("Frequency of Alleles")
-        plt.xlabel("Chromosome")
-        plt.ylabel("case                         control")
-        ax1 = fig.add_subplot(111)  
+        fig=plt.figure(facecolor='white')
+        
+        #add axes in rectangle left position, bottom position, width, height
+        ax1 = fig.add_axes([0.1, 0.3, 0.8, 0.6])
+        ax2=fig.add_axes([0.1, 0.1, 0.8, 0.2], sharex=ax1)
+        ax1.set_yticks([])
+        ax2.set_yticks([])
+        ax1.set_title("Frequency of Alleles")
+        ax1.set_ylabel("case                         control")
+        ax2.set_xlabel("Chromosome")
+        
         halfrange=(end-start)/2.0
         center=start+halfrange
         #half of the total desired range shown
 
-        plt.axis([center-halfrange, center+halfrange, -2, 2])
-        horizontalLine=Line2D([0, 100000000000], [0, 0],linewidth=1, color='black')
+        ax1.axis([center-halfrange, center+halfrange, -2, 2])
+        horizontalLine=Line2D([-1, 100000000000], [0, 0],linewidth=1, color='black')
         ax1.add_line(horizontalLine)
         ax1.grid(True)
-        fig.subplots_adjust(bottom=0.2)
+        ax2.set_ylim(-5, 5)
+        ax2.add_line(horizontalLine)
+        #fig.subplots_adjust(bottom=0.2)
 
-        return ax1
+        return ax1, ax2
     
 
 ############################################################
 if __name__ == "__main__":
     #Begin option parser
     parser=OptionParser()
-    parser.add_option("-f", "--file", dest="filename", default='../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf', help ="data input file", metavar="input")
-    parser.add_option("-q", "--quiet", action="store_false", dest="verbose", default=True, help="don't print status messages to stdout")
-    parser.add_option("-r", "--region", dest="region", default="1:157506300-157511350", help="region requested, chrom: start-stop format", metavar="region")
-    
-    (options, args)=parser.parse_args()
+    parser.add_option(
+        "-q", "--quiet",
+        dest="verbose", 
+        action="store_false", 
+        default=True,
+        help="don't print status messages to stdout"
+        )
+
+    parser.add_option(
+        "-i", "--interact",
+        dest="interact", 
+        action="store_true", 
+        default=False,
+        help="Enter interactive python session after running"
+        )
+
+    parser.add_option(
+        "-b", "--build",
+        dest="build", 
+        default='hg19',
+        help="hg build (UCSC database for gene data)"
+        )
+
+    parser.add_option(
+        "--genes",
+        dest="genes", 
+        default='refFlat',
+        metavar="refFlat|knownGene|filename",
+        help="UCSC table or file to use for gene information"
+        )
+
+    parser.add_option(
+        "-v", "--vcf", 
+        dest="vcf_file", 
+        default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
+        help ="vcf file containing genotypes", 
+        metavar="FILE"
+        )
+
+    parser.add_option(
+        "-t", "--traits", 
+        dest="trait_file", 
+        default="../testing/data/458_traits.csv",
+        help="trait file", 
+        metavar="FILE"
+        )
+
+    parser.add_option(
+        "-g", "--groups", 
+        dest="groups", 
+        default="T2D",
+        help="specify grouping variable", 
+        metavar="STRING"
+        )
+
+    parser.add_option(
+        "-r", "--region", 
+        dest="region", 
+        default='1:873000-880000',
+        help="specify region of interest", 
+        metavar="chr:start-stop"
+        )
+
+    parser.add_option(
+        "-p", "--prefix", 
+        dest="prefix", 
+        default="genezoom-out",
+        help ="prefix for output files", 
+        metavar="STRING"
+        )
+
+    (options, args) = parser.parse_args()
+
     #Begin regular expression compile for chrom, start, and stop
     regionRE=re.compile(r'(.+):(\d+)-(\d+)')
-    filename=options.filename
+    filename=options.vcf_file
     
     m=regionRE.match(options.region)
     v = vcf.VCFdata(filename, 1024*1024)
@@ -113,25 +197,29 @@ if __name__ == "__main__":
     
     vstuff = v.fetch_range(chrom, start, end)
     
+    refFlatKeys = ['geneName','name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts','exonEnds']
+    refFlat = bed.BED('../testing/data/refFlat.txt.gz.1', keys=refFlatKeys)
+    bedRow=[row for row in refFlat if row['name']=='NM_152486' ][0]
     
-    ax1=SetupPlot(start, end)
-
-    #example trait information, should be replaced
-    traitstuff=[]
-    j=0
-    for v in vstuff:
-        if j%2==0:
-            traitstuff.append('case')
-        else:
-            traitstuff.append('control')
-        j+=1
+    ax1, ax2=SetupPlot(start, end)
     
     xLoc=start
+
+
     #for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
+    
     for v in vstuff:
-        xTable=CrossTable.xTable(traitstuff, v.genotypes())
-        dots=dotPlot(xTable, v.getpos())
-        ax1.add_collection(dots)
+        #check to see if the gene is in the exon
+        if not bp2exonbp(bedRow.get_exons(), v.getpos())==-1:
+            xTable=CrossTable.xTable(options.trait_file, v.genotypes())
+            dots=dotPlot(xTable, v.getpos())
+            ax1.add_collection(dots)
+    
+    exonRect=drawExon(bedRow.get_exons())
+    ax2.add_collection(exonRect)
+    ax2.add_line(Line2D([-1, 100000000000], [0, 0],linewidth=1, color='black'))
+    ax1.add_line(Line2D([-1, 100000000000], [0, 0],linewidth=1, color='black'))
+    #ax1.set_xticks([xtickgathered])
     plt.show()
 
 ##################################################################################

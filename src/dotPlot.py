@@ -4,9 +4,10 @@ Created on Jun 8, 2011
 A program to generate a dotgraph based on information acquired from a vcf file, using genezoom to create a table of said data
 @author: jcc7
 '''
-import vcf, re
+import vcf
+#from vcfutils import *
+import re
 import CrossTable
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Rectangle, Ellipse
 from matplotlib.lines import Line2D
@@ -61,7 +62,7 @@ def dotPlot(stuff, xLoc):
     #initialization of our patches, with a blank circle to avoid errors of empty list
     patches=[Circle([xLoc, 0], 1, color='white', alpha=0)] 
     circleWidth=0.4
-    circleHeight=.1
+    circleHeight=1.0
     for i in range(2):
         #Graph of the first list of data ('case') in our data set
         if i==0:
@@ -73,31 +74,26 @@ def dotPlot(stuff, xLoc):
         oneCircles= stuff.valueAt(i, length-2)
         twoCircles=stuff.valueAt(i, length-1)
         if twoCircles!=0:
-            colorShade='#ff0000'
+            colorShade='#dd0000'
             circleLoc=multiCircles(patches, twoCircles, xLoc, circleLoc, circleWidth, circleHeight, colorShade)
         if oneCircles!=0:
-            colorShade='#00ff00'
+            colorShade='#00dd00'
             circleLoc=multiCircles(patches, oneCircles, xLoc, circleLoc, circleWidth, circleHeight, colorShade)
     return PatchCollection(patches, match_original=True)
 
 def SetupPlot(start, end):
         #set up the graph format
         fig=plt.figure(facecolor='white')
-        
         #add axes in rectangle left position, bottom position, width, height
         ax1 = fig.add_axes([0.1, 0.3, 0.8, 0.6])
         ax2=fig.add_axes([0.1, 0.1, 0.8, 0.2], sharex=ax1)
-        ax1.set_yticks([])
         ax2.set_yticks([])
         ax1.set_title("Frequency of Alleles")
         ax1.set_ylabel("case                         control")
         ax2.set_xlabel("Chromosome")
-        
         halfrange=(end-start)/2.0
         center=start+halfrange
-        #half of the total desired range shown
-
-        ax1.axis([center-halfrange, center+halfrange, -2, 2])
+        ax1.axis([center-halfrange, center+halfrange, -7, 7])
         horizontalLine=Line2D([-1, 100000000000], [0, 0],linewidth=1, color='black')
         ax1.add_line(horizontalLine)
         ax1.grid(True)
@@ -136,12 +132,18 @@ if __name__ == "__main__":
         )
 
     parser.add_option(
-        "--genes",
-        dest="genes", 
-        default='refFlat',
+        "--bed",
+        dest="bed", 
+        default='../testing/data/refFlat.txt.gz.1',
         metavar="refFlat|knownGene|filename",
         help="UCSC table or file to use for gene information"
         )
+    
+    parser.add_option(
+        "--gene",
+        dest="gene",
+        default='NM_152486',
+        help="Gene to graph")
 
     parser.add_option(
         "-v", "--vcf", 
@@ -187,20 +189,25 @@ if __name__ == "__main__":
 
     #Begin regular expression compile for chrom, start, and stop
     regionRE=re.compile(r'(.+):(\d+)-(\d+)')
-    filename=options.vcf_file
     
     m=regionRE.match(options.region)
-    v = vcf.VCFdata(filename, 1024*1024)
     chrom=int(m.groups()[0])
     start=int(m.groups()[1])
     end=int(m.groups()[2])
-    
-    vstuff = v.fetch_range(chrom, start, end)
+    try:
+        from vcfutils import *        
+        v=vcfReader(options.vcf_file)
+        vstuff = v.query(chrom, start, end)
+    except Exception as e:
+        print e
+        v = vcf.VCFdata(options.vcf_file, 1024*1024)
+        vstuff = v.fetch_range(chrom, start, end)
     
     refFlatKeys = ['geneName','name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts','exonEnds']
-    refFlat = bed.BED('../testing/data/refFlat.txt.gz.1', keys=refFlatKeys)
-    bedRow=[row for row in refFlat if row['name']=='NM_152486' ][0]
+    refFlat = bed.BED(options.bed, keys=refFlatKeys)
+    bedRow=[row for row in refFlat if row['name']==options.gene ][0]
     
+    #check for dimensions of graph, and to see if the introns intersect with the desired region
     ax1, ax2=SetupPlot(start, end)
     
     xLoc=start

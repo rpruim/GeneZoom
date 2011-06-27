@@ -6,8 +6,12 @@ A program to generate a dotgraph based on information acquired from a vcf file, 
 '''
 import re
 import CrossTable
-import matplotlib
-from optparse import OptionParser
+#import matplotlib
+import matplotlib.pylab as plt
+from matplotlib.patches import Circle, Rectangle, Ellipse
+from matplotlib.lines import Line2D
+from matplotlib.collections import PatchCollection
+from optparse import OptionParser, OptionGroup
 import bed
 
 ######################################################
@@ -42,11 +46,15 @@ def drawExon(exonTupleList):
     #Rectangle (xpos (left), ypos (bottom), width, height, kwargs)
     patches=[Rectangle((0, -1), 1, 2, fill=False)]
     loc=0
+    exonColor=0
     for exon in exonTupleList:
         start=loc
         width=exon[1]-exon[0]-1
-        patches.append(Rectangle((start, -1), width, 2))
+        if exonColor%2==1: col='#ffab00'
+        else: col='#0054ff' #for some extra color
+        patches.append(Rectangle((start, -1), width, 2, color=col))
         loc=loc+width+1
+        exonColor+=1
     return PatchCollection(patches, match_original=True)
 
 #draw stacked circles in a number equal to circles
@@ -81,19 +89,24 @@ def dotPlot(stuff, xLoc):
         oneCircles= stuff.valueAt(i, length-2)
         twoCircles=stuff.valueAt(i, length-1)
         if twoCircles!=0:
-            colorShade='#dd0000'
+            colorShade='#ee0000'
             circleLoc=multiCircles(patches, twoCircles, xLoc, circleLoc, circleWidth, circleHeight, colorShade)
         if oneCircles!=0:
-            colorShade='#00dd00'
+            colorShade='#00ee00'
             circleLoc=multiCircles(patches, oneCircles, xLoc, circleLoc, circleWidth, circleHeight, colorShade)
     return PatchCollection(patches, match_original=True)
 
 def SetupPlot(start, end, ymin, ymax):
         #set up the graph format
-        fig=plt.figure(facecolor='white')
+        fig=plt.figure()
         #add axes in rectangle left position, bottom position, width, height
         ax1 = fig.add_axes([0.1, 0.3, 0.8, 0.6])
         ax2=fig.add_axes([0.1, 0.1, 0.8, 0.2], sharex=ax1)
+#        yticklabels=[]
+#        for i in range(ymin, ymax+1):
+#            yticklabels.append(abs(i))
+#        print yticklabels
+#        ax1.set_yticks(yticklabels)
         ax2.set_yticks([])
         ax1.set_title(options.title)
         ax1.set_ylabel("case                         control")
@@ -115,6 +128,9 @@ def SetupPlot(start, end, ymin, ymax):
 if __name__ == "__main__":
     #Begin option parser
     parser=OptionParser()
+    graphGroup=OptionGroup(parser, "Graph options")
+    infoGroup=OptionGroup(parser, "Genetic information options")
+    otherGroup=OptionGroup(parser, "Other options")
     parser.add_option(
         "-q", "--quiet",
         dest="verbose", 
@@ -131,14 +147,14 @@ if __name__ == "__main__":
         help="Enter interactive python session after running"
         )
 
-    parser.add_option(
+    infoGroup.add_option(
         "-b", "--build",
         dest="build", 
         default='hg19',
         help="hg build (UCSC database for gene data)"
         )
 
-    parser.add_option(
+    infoGroup.add_option(
         "--bed",
         dest="bed", 
         default='../testing/data/refFlat.txt.gz.1',
@@ -146,13 +162,13 @@ if __name__ == "__main__":
         help="UCSC table or file to use for gene information"
         )
     
-    parser.add_option(
+    infoGroup.add_option(
         "--gene",
         dest="gene",
         default='NM_152486',
         help="Gene to graph")
 
-    parser.add_option(
+    infoGroup.add_option(
         "-v", "--vcf", 
         dest="vcf_file", 
         default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
@@ -160,7 +176,7 @@ if __name__ == "__main__":
         metavar="FILE"
         )
 
-    parser.add_option(
+    infoGroup.add_option(
         "-t", "--traits", 
         dest="trait_file", 
         default="../testing/data/458_traits.csv",
@@ -168,7 +184,7 @@ if __name__ == "__main__":
         metavar="FILE"
         )
 
-    parser.add_option(
+    infoGroup.add_option(
         "-g", "--groups", 
         dest="groups", 
         default="T2D",
@@ -176,7 +192,7 @@ if __name__ == "__main__":
         metavar="STRING"
         )
 
-    parser.add_option(
+    graphGroup.add_option(
         "-r", "--region", 
         dest="region", 
         default='1:873000-880000',
@@ -184,72 +200,69 @@ if __name__ == "__main__":
         metavar="chr:start-stop"
         )
 
-    parser.add_option(
+    graphGroup.add_option(
         "-p", "--prefix", 
         dest="prefix", 
         default="genezoom-out",
         help ="prefix for output files", 
         metavar="STRING"
         )
-    parser.add_option(
-        "--title",
+    graphGroup.add_option(
+        "-t", "--title",
         dest="title",
         default="Frequency of alleles",
         help="desired title for the plot"
         )
-    parser.add_option(
+    graphGroup.add_option(
         "--png",
         dest="png",
         action="store_true",
         help="Save graph to png"
         )
-    parser.add_option(
+    graphGroup.add_option(
         "--pdf",
         dest="pdf",
         action="store_true",
         help="Save graph to pdf"
         )
-    parser.add_option(
+    graphGroup.add_option(
         "--nograph",
         dest="graph",
         action="store_false",
-        help="Show the plot in an interactive session"
+        help="Don't show the plot in an interactive session"
         )
-    parser.add_option(
+    graphGroup.add_option(
         "--graph",
         dest="graph",
         default=True,
         action="store_true",
-        help="Show the plot in an interactive session"
+        help="Show the plot in an interactive session (default)"
         )
-    parser.add_option(
+    graphGroup.add_option(
         "-y", "--yscale", 
         dest="yscale", 
-        default='-7:7',
-        help="y scale of graphed plot", 
-        metavar="ymin:ymax"
+        default='7:7',
+        help="number of cases shown: number of controls shown", 
+        metavar="cases:controls"
         )
+    parser.add_option_group(infoGroup)
+    parser.add_option_group(graphGroup)
+
     (options, args) = parser.parse_args()
 
     #Begin regular expression compile for chrom, start, and stop
     regionRE=re.compile(r'(.+):(\d+)-(\d+)')
-    
     m=regionRE.match(options.region)
     chrom=int(m.groups()[0])
     start=int(m.groups()[1])
     end=int(m.groups()[2])
+    #Begin regular expression compile for ymin, ymax
+    scaleRE=re.compile(r'(\d+):(\d+)')
+    y=scaleRE.match(options.yscale)
+    ymin=int(y.groups()[0])
+    ymax=int(y.groups()[1])
     
-#    scaleRE=re.compile(r'(^[-+]?[0-9]*):(^[-+]?[0-9]*)')
-#    
-#    s=scaleRE.match(options.yscale)
-#    ymin=int(s.groups()[0])
-#    ymax=int(s.groups()[1])
-#    if options.png==True or options.pdf==True:
-#        matplotlib.use('Agg')
-    import matplotlib.pylab as plt
-    from matplotlib.patches import Circle, Rectangle, Ellipse
-    from matplotlib.lines import Line2D
-    from matplotlib.collections import PatchCollection
+
     try:
         from vcfutils import *        
         v=vcfReader(options.vcf_file)
@@ -273,7 +286,7 @@ if __name__ == "__main__":
         end=bp2exonbp(bedRow.get_exons(), end)
     else:
         end=exonDict[end]
-    ax1, ax2, fig=SetupPlot(start, end, -7, 7)
+    ax1, ax2, fig=SetupPlot(start, end, ymin*-1, ymax)
     
     #for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
     for v in vstuff:

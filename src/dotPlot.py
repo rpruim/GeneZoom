@@ -7,11 +7,6 @@ A program to generate a dotgraph based on information acquired from a vcf file, 
 import re
 import CrossTable
 import matplotlib
-#matplotlib.use('Agg')
-import matplotlib.pylab as plt
-from matplotlib.patches import Circle, Rectangle, Ellipse
-from matplotlib.lines import Line2D
-from matplotlib.collections import PatchCollection
 from optparse import OptionParser
 import bed
 
@@ -205,29 +200,28 @@ if __name__ == "__main__":
     parser.add_option(
         "--png",
         dest="png",
-        default=False,
+        action="store_true",
         help="Save graph to png"
         )
     parser.add_option(
         "--pdf",
         dest="pdf",
-        default=False,
+        action="store_true",
         help="Save graph to pdf"
         )
-#    parser.add_option(
-#        "--nograph",
-#        dest="graph",
-#        default=True,
-#        action="store_false",
-#        help="Show the plot in an interactive session"
-#        )
-#    parser.add_option(
-#        "--graph",
-#        dest="graph",
-#        default=True,
-#        action="store_true",
-#        help="Show the plot in an interactive session"
-#        )
+    parser.add_option(
+        "--nograph",
+        dest="graph",
+        action="store_false",
+        help="Show the plot in an interactive session"
+        )
+    parser.add_option(
+        "--graph",
+        dest="graph",
+        default=True,
+        action="store_true",
+        help="Show the plot in an interactive session"
+        )
     parser.add_option(
         "-y", "--yscale", 
         dest="yscale", 
@@ -250,6 +244,12 @@ if __name__ == "__main__":
 #    s=scaleRE.match(options.yscale)
 #    ymin=int(s.groups()[0])
 #    ymax=int(s.groups()[1])
+#    if options.png==True or options.pdf==True:
+#        matplotlib.use('Agg')
+    import matplotlib.pylab as plt
+    from matplotlib.patches import Circle, Rectangle, Ellipse
+    from matplotlib.lines import Line2D
+    from matplotlib.collections import PatchCollection
     try:
         from vcfutils import *        
         v=vcfReader(options.vcf_file)
@@ -288,10 +288,10 @@ if __name__ == "__main__":
     ax2.add_line(Line2D([-1, 100000000000], [0, 0],linewidth=1, color='black'))
     ax1.add_line(Line2D([-1, 100000000000], [0, 0],linewidth=1, color='black'))
     #ax1.set_xticks([xtickgathered])
-    if True:
-        plt.show()
     if options.png:
-        plt.savefig(options.prefix+'.png')
+        fig.savefig(options.prefix+'.png')
     if options.pdf:
         fig.savefig(options.prefix+'.pdf')
+    if options.graph:
+        plt.show()
 ##################################################################################

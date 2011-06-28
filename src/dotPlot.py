@@ -4,20 +4,15 @@ Created on Jun 8, 2011
 A program to generate a dotgraph based on information acquired from a vcf file, using genezoom to create a table of said data
 @author: jcc7
 '''
-import re
+
 import CrossTable
-#import matplotlib
 import matplotlib.pylab as plt
 from matplotlib.patches import Circle, Rectangle, Ellipse
 from matplotlib.lines import Line2D
 from matplotlib.collections import PatchCollection
 import matplotlib.ticker as ticker
-from matplotlib.figure import Figure
-from optparse import OptionParser, OptionGroup
-import bed
 
 ######################################################
-
 #Method to convert a base pair to its location as a base pair in the exon
 def bp2exonbp(tupleList, number):
     sum=0
@@ -99,15 +94,12 @@ def dotPlot(stuff, xLoc):
     return PatchCollection(patches, match_original=True)
 
 #set up the parameters for the graph
-def SetupPlot(start, end, ymin, ymax):
+def SetupPlot(start, end, ymin, ymax, options):
         #set up the graph format
-        #fig=plt.figure()
         fig=plt.figure(figsize=(8,5))#set window size to width, height 
         #add axes in rectangle left position, bottom position, width, height
         ax1 = fig.add_axes([0.1, 0.3, 0.8, 0.6])
         ax2=fig.add_axes([0.1, 0.1, 0.8, 0.2], sharex=ax1)
-        #ax1.yaxis.set_major_formatter(ticker.ScalarFormatter())
-        #ax1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
         ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: str(int((abs(x))))))#set ticks to absolute value
         ax2.set_yticks([])
         ax1.set_title(options.title)
@@ -125,170 +117,8 @@ def SetupPlot(start, end, ymin, ymax):
 
         return ax1, ax2, fig
 
-############################################################
-if __name__ == "__main__":
-    #Begin option parser
-    parser=OptionParser()
-    graphGroup=OptionGroup(parser, "Graph options")
-    infoGroup=OptionGroup(parser, "Genetic information options")
-    otherGroup=OptionGroup(parser, "Other options")
-    parser.add_option(
-        "-q", "--quiet",
-        dest="verbose", 
-        action="store_false", 
-        default=True,
-        help="don't print status messages to stdout"
-        )
-
-    parser.add_option(
-        "-i", "--interact",
-        dest="interact", 
-        action="store_true", 
-        default=False,
-        help="Enter interactive python session after running"
-        )
-
-    infoGroup.add_option(
-        "-b", "--build",
-        dest="build", 
-        default='hg19',
-        help="hg build (UCSC database for gene data)"
-        )
-
-    infoGroup.add_option(
-        "--bed",
-        dest="bed", 
-        default='../testing/data/refFlat.txt.gz.1',
-        metavar="refFlat|knownGene|filename",
-        help="UCSC table or file to use for gene information"
-        )
-    
-    infoGroup.add_option(
-        "--gene",
-        dest="gene",
-        default='NM_152486',
-        help="Gene to graph")
-
-    infoGroup.add_option(
-        "-v", "--vcf", 
-        dest="vcf_file", 
-        default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
-        help ="vcf file containing genotypes", 
-        metavar="FILE"
-        )
-
-    infoGroup.add_option(
-        "-t", "--traits", 
-        dest="trait_file", 
-        default="../testing/data/458_traits.csv",
-        help="trait file", 
-        metavar="FILE"
-        )
-
-    infoGroup.add_option(
-        "-g", "--groups", 
-        dest="groups", 
-        default="T2D",
-        help="specify grouping variable", 
-        metavar="STRING"
-        )
-
-    graphGroup.add_option(
-        "-r", "--region", 
-        dest="region", 
-        default='1:873000-880000',
-        help="specify region of interest", 
-        metavar="chr:start-stop"
-        )
-
-    graphGroup.add_option(
-        "-p", "--prefix", 
-        dest="prefix", 
-        default="genezoom-out",
-        help ="prefix for output files", 
-        metavar="STRING"
-        )
-    graphGroup.add_option(
-        "--title",
-        dest="title",
-        default="Frequency of alleles",
-        help="desired title for the plot"
-        )
-    graphGroup.add_option(
-        "--png",
-        dest="png",
-        action="store_true",
-        help="Save graph to png"
-        )
-    graphGroup.add_option(
-        "--pdf",
-        dest="pdf",
-        action="store_true",
-        help="Save graph to pdf"
-        )
-    graphGroup.add_option(
-        "--nograph",
-        dest="graph",
-        action="store_false",
-        help="Don't show the plot in an interactive session"
-        )
-    graphGroup.add_option(
-        "--graph",
-        dest="graph",
-        default=True,
-        action="store_true",
-        help="Show the plot in an interactive session (default)"
-        )
-    graphGroup.add_option(
-        "-y", "--yscale", 
-        dest="yscale", 
-        default='7:7',
-        help="number of cases shown: number of controls shown", 
-        metavar="cases:controls"
-        )
-    parser.add_option_group(infoGroup)
-    parser.add_option_group(graphGroup)
-
-    (options, args) = parser.parse_args()
-
-    #Begin regular expression compile for chrom, start, and stop
-    regionRE=re.compile(r'(.+):(\d+)-(\d+)')
-    m=regionRE.match(options.region)
-    chrom=int(m.groups()[0])
-    start=int(m.groups()[1])
-    end=int(m.groups()[2])
-    #Begin regular expression compile for ymin, ymax
-    scaleRE=re.compile(r'(\d+):(\d+)')
-    y=scaleRE.match(options.yscale)
-    ymin=int(y.groups()[0])
-    ymax=int(y.groups()[1])
-    
-
-    try:
-        from vcfutils import *        
-        v=vcfReader(options.vcf_file)
-        vstuff = v.query(chrom, start, end)
-    except Exception as e:
-        import vcf
-        print e
-        v = vcf.VCFdata(options.vcf_file, 1024*1024)
-        vstuff = v.fetch_range(chrom, start, end)
-    
-    refFlatKeys = ['geneName','name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts','exonEnds']
-    refFlat = bed.BED(options.bed, keys=refFlatKeys)
-    bedRow=[row for row in refFlat if row['name']==options.gene ][0]
-    
-    exonDict=exonbplist(bedRow.get_exons())
-    if not exonDict.has_key(start):
-        start=bp2exonbp(bedRow.get_exons(), start)
-    else:
-        start=exonDict[start]
-    if not exonDict.has_key(end):
-        end=bp2exonbp(bedRow.get_exons(), end)
-    else:
-        end=exonDict[end]
-    ax1, ax2, fig=SetupPlot(start, end, ymin*-1, ymax)
-    
+def dotHistogram(options, vstuff, exonDict, bedRow):
+    ax1, ax2, fig=SetupPlot(options.start, options.stop, options.ymin*-1, options.ymax, options)
     #for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
     for v in vstuff:
         #check to see if the gene is in the exon
@@ -296,16 +126,14 @@ if __name__ == "__main__":
             xTable=CrossTable.xTable(options.trait_file, v.genotypes())
             dots=dotPlot(xTable, exonDict[int(v.getpos())])
             ax1.add_collection(dots)
-    
     exonRect=drawExon(bedRow.get_exons())
     ax2.add_collection(exonRect)
     ax2.add_line(Line2D([-1, 100000000000], [0, 0],linewidth=1, color='black'))
     ax1.add_line(Line2D([-1, 100000000000], [0, 0],linewidth=1, color='black'))
-    #ax1.set_xticks([xtickgathered])
     if options.png:
         fig.savefig(options.prefix+'.png')
     if options.pdf:
         fig.savefig(options.prefix+'.pdf')
     if options.graph:
         plt.show()
-##################################################################################
+############################################################

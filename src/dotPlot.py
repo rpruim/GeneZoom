@@ -11,6 +11,8 @@ import matplotlib.pylab as plt
 from matplotlib.patches import Circle, Rectangle, Ellipse
 from matplotlib.lines import Line2D
 from matplotlib.collections import PatchCollection
+import matplotlib.ticker as ticker
+from matplotlib.figure import Figure
 from optparse import OptionParser, OptionGroup
 import bed
 
@@ -50,8 +52,8 @@ def drawExon(exonTupleList):
     for exon in exonTupleList:
         start=loc
         width=exon[1]-exon[0]-1
-        if exonColor%2==1: col='#ffab00'
-        else: col='#0054ff' #for some extra color
+        if exonColor%2==1: col='#ff7400'
+        else: col='#009999' #for some extra color
         patches.append(Rectangle((start, -1), width, 2, color=col))
         loc=loc+width+1
         exonColor+=1
@@ -89,24 +91,24 @@ def dotPlot(stuff, xLoc):
         oneCircles= stuff.valueAt(i, length-2)
         twoCircles=stuff.valueAt(i, length-1)
         if twoCircles!=0:
-            colorShade='#ee0000'
+            colorShade='#ff0000'
             circleLoc=multiCircles(patches, twoCircles, xLoc, circleLoc, circleWidth, circleHeight, colorShade)
         if oneCircles!=0:
-            colorShade='#00ee00'
+            colorShade='#00cc00'
             circleLoc=multiCircles(patches, oneCircles, xLoc, circleLoc, circleWidth, circleHeight, colorShade)
     return PatchCollection(patches, match_original=True)
 
+#set up the parameters for the graph
 def SetupPlot(start, end, ymin, ymax):
         #set up the graph format
-        fig=plt.figure()
+        #fig=plt.figure()
+        fig=plt.figure(figsize=(8,5))#set window size to width, height 
         #add axes in rectangle left position, bottom position, width, height
         ax1 = fig.add_axes([0.1, 0.3, 0.8, 0.6])
         ax2=fig.add_axes([0.1, 0.1, 0.8, 0.2], sharex=ax1)
-#        yticklabels=[]
-#        for i in range(ymin, ymax+1):
-#            yticklabels.append(abs(i))
-#        print yticklabels
-#        ax1.set_yticks(yticklabels)
+        #ax1.yaxis.set_major_formatter(ticker.ScalarFormatter())
+        #ax1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
+        ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: str(int((abs(x))))))#set ticks to absolute value
         ax2.set_yticks([])
         ax1.set_title(options.title)
         ax1.set_ylabel("case                         control")
@@ -122,7 +124,6 @@ def SetupPlot(start, end, ymin, ymax):
         #fig.subplots_adjust(bottom=0.2)
 
         return ax1, ax2, fig
-    
 
 ############################################################
 if __name__ == "__main__":
@@ -208,7 +209,7 @@ if __name__ == "__main__":
         metavar="STRING"
         )
     graphGroup.add_option(
-        "-t", "--title",
+        "--title",
         dest="title",
         default="Frequency of alleles",
         help="desired title for the plot"

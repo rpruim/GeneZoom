@@ -122,9 +122,9 @@ def dotHistogram(options, vstuff, exonDict, bedRow):
     #for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
     for v in vstuff:
         #check to see if the gene is in the exon
-        if exonDict.has_key(int(v.getpos())):
-            xTable=CrossTable.xTable(options.trait_file, v.genotypes())
-            dots=dotPlot(xTable, exonDict[int(v.getpos())])
+        if exonDict.has_key(int(v.get_pos())):
+            xTable=CrossTable.xTable(options.trait_file, v.get_genotypes())
+            dots=dotPlot(xTable, exonDict[int(v.get_pos())])
             ax1.add_collection(dots)
     exonRect=drawExon(bedRow.get_exons())
     ax2.add_collection(exonRect)

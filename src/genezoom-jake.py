@@ -178,7 +178,6 @@ if __name__ == "__main__":
 			ipshell()
 		except:
 			logging.critical("Unable to locate ipython, so shutting down without entering interactive mode.")
-
 	else:
 		exit(0)
 

@@ -7,6 +7,12 @@ import bed
 import re
 import dotPlot as dp
 
+# Load program constants.
+conf_file = find_relative("conf/gz.conf")
+if conf_file:
+	execfile(conf_file)
+else:
+	die('Unable to find configuration file.')
 
 def OptionSetUp():
 	#Begin option parser
@@ -112,7 +118,7 @@ def OptionSetUp():
 	try:
 		regionRE=re.compile(r'(.+):(\d+)-(\d+)')
 		m=regionRE.match(options.region)
-		options.chrom = int(m.groups()[0])
+		options.chrom = (m.groups()[0])
 		options.start = int(m.groups()[1])
 		options.stop = int(m.groups()[2])
 	except Exception as e:
@@ -132,6 +138,7 @@ def OptionSetUp():
 
 #set up the data for the UCSC file for gene information and the exon base pairs
 def dataSetup( options ):
+	traits = gzio.read_csv(options.trait_file)
 	refFlatKeys = ['geneName','name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts','exonEnds']
 	refFlat = bed.BED(options.bed, keys=refFlatKeys)
 	bedRow=[row for row in refFlat if row['name']==options.gene ][0]
@@ -145,15 +152,10 @@ def dataSetup( options ):
 		options.stop=dp.bp2exonbp(bedRow.get_exons(), options.stop)
 	else:
 		options.stop=exonDict[options.stop]
-	return exonDict, bedRow, options
+	return exonDict, bedRow, options, traits
 
 if __name__ == "__main__":
-#	# Load program constants.
-#	conf_file = find_relative("conf/gz.conf")
-#	if conf_file:
-#		execfile(conf_file)
-#	else:
-#		die('Unable to find configuration file.')
+
 	options, args = OptionSetUp()
 	#load the vcf file containing the genotypes
 	#this is placed here instead of in dataSetup due to import restrictions
@@ -165,13 +167,19 @@ if __name__ == "__main__":
 		import vcf
 		print e	
 		v = vcf.VCFdata(options.vcf_file, 1024*1024)
-		vstuff = v.fetch_range(options.chrom, options.start, options.stop)
-	exonDict, bedRow, options = dataSetup(options)
+		#vcfutils requires options.chrom to be a string, whereas vcf requires options.chrom to be an int
+		vstuff = v.fetch_range(int(options.chrom), options.start, options.stop)
+	exonDict, bedRow, options, traits = dataSetup(options)
 	dp.dotHistogram(options, vstuff, exonDict, bedRow)
 	if options.interact:
-		ipshell = IPShellEmbed([])
-		ipshell()
-  	else:
+		try:
+			from IPython.Shell import IPShellEmbed  # enter interactive ipython
+			ipshell = IPShellEmbed([])
+			ipshell()
+		except:
+			logging.critical("Unable to locate ipython, so shutting down without entering interactive mode.")
+
+	else:
 		exit(0)
 
 

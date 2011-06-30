@@ -11,6 +11,7 @@ from matplotlib.patches import Circle, Rectangle, Ellipse
 from matplotlib.lines import Line2D
 from matplotlib.collections import PatchCollection
 import matplotlib.ticker as ticker
+from matplotlib import font_manager
 
 ######################################################
 #Method to convert a base pair to its location as a base pair in the exon
@@ -47,8 +48,8 @@ def drawExon(exonTupleList):
     for exon in exonTupleList:
         start=loc
         width=exon[1]-exon[0]-1
-        if exonColor%2==1: col='#ff7400'
-        else: col='#009999' #for some extra color
+        if exonColor%2==1: col='#ff9e00'
+        else: col='#fd0006' #for some extra color
         patches.append(Rectangle((start, -1), width, 2, color=col))
         loc=loc+width+1
         exonColor+=1
@@ -86,10 +87,10 @@ def dotPlot(stuff, xLoc):
         oneCircles= stuff.valueAt(i, length-2)
         twoCircles=stuff.valueAt(i, length-1)
         if twoCircles!=0:
-            colorShade='#ff0000'
+            colorShade='#0e51a7'
             circleLoc=multiCircles(patches, twoCircles, xLoc, circleLoc, circleWidth, circleHeight, colorShade)
         if oneCircles!=0:
-            colorShade='#00cc00'
+            colorShade='#0acf00'
             circleLoc=multiCircles(patches, oneCircles, xLoc, circleLoc, circleWidth, circleHeight, colorShade)
     return PatchCollection(patches, match_original=True)
 
@@ -99,20 +100,26 @@ def SetupPlot(start, end, ymin, ymax, options):
         fig=plt.figure(figsize=(8,5))#set window size to width, height 
         #add axes in rectangle left position, bottom position, width, height
         ax1 = fig.add_axes([0.1, 0.3, 0.8, 0.6])
-        ax2=fig.add_axes([0.1, 0.1, 0.8, 0.2], sharex=ax1)
-        ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: str(int((abs(x))))))#set ticks to absolute value
-        ax2.set_yticks([])
+        ax2 = fig.add_axes([0.1, 0.1, 0.8, 0.2], sharex=ax1)
+        halfrange=(end-start)/2.0
+        center=start+halfrange
+        ax1.axis([center-halfrange, center+halfrange, ymin, ymax]) #set up axis ranges
+        ax2.set_ylim(-5, 5)
+        #set up titles, labels, and ticks
         ax1.set_title(options.title)
         ax1.set_ylabel("case                         control")
         ax2.set_xlabel("Chromosome")
-        halfrange=(end-start)/2.0
-        center=start+halfrange
-        ax1.axis([center-halfrange, center+halfrange, ymin, ymax])
+        ax1.grid(True)        
+        ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: str(int((abs(x))))))#set ticks to absolute value
+        ax2.set_yticks([])
+        for label in ax1.xaxis.get_ticklabels():
+            # label is a Text instance
+            label.set_fontsize(0)
+        #add horizontal axis and a legend
         horizontalLine=Line2D([-1, 100000000000], [0, 0],linewidth=1, color='black')
         ax1.add_line(horizontalLine)
-        ax1.grid(True)
-        ax2.set_ylim(-5, 5)
-        ax2.add_line(horizontalLine)
+        leg1=ax1.legend((Ellipse((0,0), 1, 1, color='#0e51a7'), Ellipse((0,0), 1, 1, color='#0acf00')),('1/1', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=10))
+        leg1.draggable(state=True, use_blit=True)
         #fig.subplots_adjust(bottom=0.2)
 
         return ax1, ax2, fig
@@ -126,10 +133,9 @@ def dotHistogram(options, vstuff, exonDict, bedRow):
             xTable=CrossTable.xTable(options.trait_file, v.get_genotypes())
             dots=dotPlot(xTable, exonDict[int(v.get_pos())])
             ax1.add_collection(dots)
-    exonRect=drawExon(bedRow.get_exons())
+    exonRect=drawExon(bedRow.get_exons()) #draw the exons
     ax2.add_collection(exonRect)
     ax2.add_line(Line2D([-1, 100000000000], [0, 0],linewidth=1, color='black'))
-    ax1.add_line(Line2D([-1, 100000000000], [0, 0],linewidth=1, color='black'))
     if options.png:
         fig.savefig(options.prefix+'.png')
     if options.pdf:

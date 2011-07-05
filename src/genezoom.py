@@ -6,6 +6,7 @@ from optparse import OptionParser, OptionGroup
 import bed
 import re
 import dotPlot as dp
+import logging
 
 # Load program constants.
 conf_file = find_relative("conf/gz.conf")
@@ -177,7 +178,6 @@ if __name__ == "__main__":
             ipshell = IPShellEmbed([])
             ipshell()
         except:
-            import logging
             logging.critical("Unable to locate ipython, so shutting down without entering interactive mode.")
     else:
         exit(0)

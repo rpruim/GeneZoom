@@ -76,16 +76,20 @@ def dotPlot(stuff, xLoc):
     patches=[Circle([xLoc, 0], 1, color='white', alpha=0)] 
     circleWidth=0.4
     circleHeight=1.0
-    for i in range(2):
+    for ccEntry in stuff.keys():
         #Graph of the first list of data ('case') in our data set
-        if i==0:
+        if ccEntry=='control':
             circleLoc=circleHeight/2
         else:    
             circleLoc=-circleHeight/2
-        #how many 0/1 alleles exist, and how many 1/1 alleles exist? This assumes that they are sorted onto the end of the column
-        length=len(stuff.getbkeys())
-        oneCircles= stuff.valueAt(i, length-2)
-        twoCircles=stuff.valueAt(i, length-1)
+        oneCircles=0
+        twoCircles=0
+        if stuff[ccEntry].has_key('1/0'):
+            oneCircles=stuff[ccEntry]['1/0']
+        if stuff[ccEntry].has_key('0/1'):
+            oneCircles=oneCircles+stuff[ccEntry]['0/1']
+        if stuff[ccEntry].has_key('1/1'):
+            twoCircles=stuff[ccEntry]['1/1']
         if twoCircles!=0:
             colorShade='#0e51a7'
             circleLoc=multiCircles(patches, twoCircles, xLoc, circleLoc, circleWidth, circleHeight, colorShade)
@@ -124,14 +128,14 @@ def SetupPlot(start, end, ymin, ymax, options):
 
         return ax1, ax2, fig
 
-def dotHistogram(options, vstuff, exonDict, bedRow):
+def dotHistogram(options, vstuff, exonDict, bedRow, traits):
     ax1, ax2, fig=SetupPlot(options.start, options.stop, options.ymin*-1, options.ymax, options)
     #for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
     for v in vstuff:
         #check to see if the gene is in the exon
         if exonDict.has_key(int(v.get_pos())):
-            xTable=CrossTable.xTable(options.trait_file, v.get_genotypes())
-            dots=dotPlot(xTable, exonDict[int(v.get_pos())])
+            xTable=CrossTable.xTable(traits['T2D'], v.get_genotypes())
+            dots=dotPlot(xTable.table, exonDict[int(v.get_pos())])
             ax1.add_collection(dots)
     exonRect=drawExon(bedRow.get_exons()) #draw the exons
     ax2.add_collection(exonRect)

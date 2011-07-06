@@ -108,7 +108,7 @@ def OptionSetUp():
     graphGroup.add_option(
         "-y", "--yscale", 
         dest="yscale", 
-        default='7:7',
+        default='50:50',
         help="number of cases shown: number of controls shown", 
         metavar="cases:controls")
     parser.add_option_group(infoGroup)
@@ -171,7 +171,7 @@ if __name__ == "__main__":
         #vcfutils requires options.chrom to be a string, whereas vcf requires options.chrom to be an int
         vstuff = v.fetch_range(int(options.chrom), options.start, options.stop)
     exonDict, bedRow, options, traits = dataSetup(options)
-    dp.dotHistogram(options, vstuff, exonDict, bedRow)
+    dp.dotHistogram(options, vstuff, exonDict, bedRow, traits)
     if options.interact:
         try:
             from IPython.Shell import IPShellEmbed  # enter interactive ipython

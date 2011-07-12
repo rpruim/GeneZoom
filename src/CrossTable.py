@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 '''
 Created on Jun 7, 2011
-Creates a cross table of two vectors, tabulating the number of 
+Creates a cross table of two vectors in the form of a dictionary of dictionaries, tabulating the number of 
 occurrences of each pair x,y, with x a member of the first vector 
-and y a member of the second
-@author: jcc7
+and y a member of the second.  Result is a two-dimensional dictionary with tabulation of occurrences of (x,y) in location table[x][y]
+
 '''
 #import vcf
 #forms a table, of a dictionary of dictionaries
 #[case/control][allele count]
 class xTable:
+    '''Creates a dictionary of dictionaries, tabulating occurrences of pairings of (x,y) in vectors a and b'''      
     def __init__(self, a, b):
         self.table = {}
         for (x, y) in zip(a, b):
@@ -20,8 +21,10 @@ class xTable:
                     self.table[x][y]=1
             else:
                 self.table[x]={y:1}
-    #prints the table
+                
+  
     def printTable(self):
+        '''Prints the table, in roughly table format'''
         print "\t",
         for entry in self.table.keys():
             print entry+"\t",
@@ -35,7 +38,11 @@ class xTable:
                     print "0\t ",
             print "\n",
 
-        
+
+    def getTable(self):
+        '''Returns the table'''
+        return self.table
+    
 #testing xtabs
 if __name__ == '__main__':
     #testing with junk data
@@ -43,12 +50,3 @@ if __name__ == '__main__':
     vecB=('1/1', '0/1', '0/0', './.', './.', '1/0', '1/1', '1/0', '1/1')
     values=xTable(vecA, vecB)
     values.printTable()
-#    print values.table
-#    print values.table.keys()
-#    for entry in values.table.keys():
-#        print "\t",
-#        for entryb in values.table[entry]:
-#            print values.table[entry][entryb],
-#            print "\t",
-#        print "\n"
-#    print values.table['case']['1/0']+values.table['case']['0/1']

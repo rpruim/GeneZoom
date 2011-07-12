@@ -16,6 +16,7 @@ else:
     die('Unable to find configuration file.')
 
 def OptionSetUp():
+    '''Sets up the option parser for the command line, returns the options chosen.'''
     #Begin option parser
     parser=OptionParser()
     #set up groups to consolidate the parser options
@@ -132,13 +133,14 @@ def OptionSetUp():
         options.ymax=int(y.groups()[1])
     except Exception as e:
         print >> sys.stderr, e
-        print "Invalid yscale region.  Defaulting to 7 cases, 7 controls."
+        print "Invalid yscale region.  Defaulting to 50 cases, 50 controls."
         options.ymin=7
         options.ymax=7
     return (options, args)
 
-#set up the data for the UCSC file for gene information and the exon base pairs
+
 def dataSetup( options ):
+    '''Sets up the data for the UCSC file for gene information and the exon base pairs.'''
     traits = gzio.read_csv(options.trait_file)
     refFlatKeys = ['geneName','name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts','exonEnds']
     refFlat = bed.BED(options.bed, keys=refFlatKeys)

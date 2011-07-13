@@ -83,7 +83,7 @@ def OptionSetUp():
     graphGroup.add_option(
         "--title",
         dest="title",
-        default="Frequency of alleles",
+        default="",
         help="desired title for the plot")
     graphGroup.add_option(
         "--png",
@@ -109,12 +109,22 @@ def OptionSetUp():
     graphGroup.add_option(
         "-y", "--yscale", 
         dest="yscale", 
-        default='50:50',
+        default='25:25',
         help="number of cases shown: number of controls shown", 
         metavar="cases:controls")
+    graphGroup.add_option(
+        "--introns",
+        dest="introns",
+        action="store_true",
+        help="Show the introns in the graph")
+    graphGroup.add_option(
+        "--nointrons",
+        dest="introns",
+        default=False,
+        action="store_false",
+        help="Don't show the introns in the graph (default)")
     parser.add_option_group(infoGroup)
     parser.add_option_group(graphGroup)
-
     (options, args) = parser.parse_args()
     #use regular expressions to evaluate the user's choices
     try:
@@ -133,9 +143,11 @@ def OptionSetUp():
         options.ymax=int(y.groups()[1])
     except Exception as e:
         print >> sys.stderr, e
-        print "Invalid yscale region.  Defaulting to 50 cases, 50 controls."
+        print "Invalid yscale region.  Defaulting to 25 cases, 25 controls."
         options.ymin=7
         options.ymax=7
+    if options.title=="":
+        options.title=options.gene
     return (options, args)
 
 
@@ -146,7 +158,7 @@ def dataSetup( options ):
     refFlat = bed.BED(options.bed, keys=refFlatKeys)
     bedRow=[row for row in refFlat if row['name']==options.gene ][0]
     #make an exon dictionary of the base pairs, defaulting to an exon if chosen start is in an exon
-    exonDict=dp.exonbplist(bedRow.get_exons())
+    exonDict=dp.exonbplist(bedRow.get_exons(), options.introns)
     if not exonDict.has_key(options.start):
         options.start=dp.bp2exonbp(bedRow.get_exons(), options.start)
     else:
@@ -168,7 +180,7 @@ if __name__ == "__main__":
         vstuff = v.query(options.chrom, options.start, options.stop)
     except Exception as e:
         import vcf
-        print e    
+        print e
         v = vcf.VCFdata(options.vcf_file, 1024*1024)
         #vcfutils requires options.chrom to be a string, whereas vcf requires options.chrom to be an int
         vstuff = v.fetch_range(int(options.chrom), options.start, options.stop)

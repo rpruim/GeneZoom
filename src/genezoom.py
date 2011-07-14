@@ -5,7 +5,7 @@ import gzio
 from optparse import OptionParser, OptionGroup
 import bed
 import re
-import dotPlot as dp
+import genePlot as gp
 import logging
 
 # Load program constants.
@@ -22,6 +22,7 @@ def OptionSetUp():
     #set up groups to consolidate the parser options
     graphGroup=OptionGroup(parser, "Graph options")
     infoGroup=OptionGroup(parser, "Genetic information options")
+    outputGroup=OptionGroup(parser, "Output options")
     parser.add_option(
         "-q", "--quiet",
         dest="verbose", 
@@ -40,16 +41,16 @@ def OptionSetUp():
         default='hg19',
         help="hg build (UCSC database for gene data)")
     infoGroup.add_option(
+        "--gene",
+        dest="gene",
+        default='NM_152486',
+        help="Gene to graph")
+    infoGroup.add_option(
         "--bed",
         dest="bed", 
         default='../testing/data/refFlat.txt.gz.1',
         metavar="refFlat|knownGene|filename",
         help="UCSC table or file to use for gene information")
-    infoGroup.add_option(
-        "--gene",
-        dest="gene",
-        default='NM_152486',
-        help="Gene to graph")
     infoGroup.add_option(
         "-v", "--vcf", 
         dest="vcf_file", 
@@ -69,43 +70,43 @@ def OptionSetUp():
         help="specify grouping variable", 
         metavar="STRING")
     graphGroup.add_option(
-        "-r", "--region", 
-        dest="region", 
-        default='1:873000-880000',
-        help="specify region of interest", 
-        metavar="chr:start-stop")
-    graphGroup.add_option(
-        "-p", "--prefix", 
-        dest="prefix", 
-        default="genezoom-out",
-        help ="prefix for output files", 
-        metavar="STRING")
-    graphGroup.add_option(
         "--title",
         dest="title",
         default="",
         help="desired title for the plot")
     graphGroup.add_option(
-        "--png",
-        dest="png",
-        action="store_true",
-        help="Save graph to png")
-    graphGroup.add_option(
-        "--pdf",
-        dest="pdf",
-        action="store_true",
-        help="Save graph to pdf")
-    graphGroup.add_option(
-        "--nograph",
-        dest="graph",
-        action="store_false",
-        help="Don't show the plot in an interactive session")
-    graphGroup.add_option(
+        "-r", "--region", 
+        dest="region", 
+        default='1:873000-880000',
+        help="specify region of interest", 
+        metavar="chr:start-stop")
+    outputGroup.add_option(
         "--graph",
         dest="graph",
         default=True,
         action="store_true",
         help="Show the plot in an interactive session (default)")
+    outputGroup.add_option(
+        "--nograph",
+        dest="graph",
+        action="store_false",
+        help="Don't show the plot in an interactive session")
+    outputGroup.add_option(
+        "-p", "--prefix", 
+        dest="prefix", 
+        default="genezoom",
+        help ="prefix for output files", 
+        metavar="STRING")
+    outputGroup.add_option(
+        "--png",
+        dest="png",
+        action="store_true",
+        help="Save graph to png")
+    outputGroup.add_option(
+        "--pdf",
+        dest="pdf",
+        action="store_true",
+        help="Save graph to pdf")
     graphGroup.add_option(
         "-y", "--yscale", 
         dest="yscale", 
@@ -123,10 +124,24 @@ def OptionSetUp():
         default=False,
         action="store_false",
         help="Don't show the introns in the graph (default)")
+    graphGroup.add_option(
+        "--shape",
+        dest="shape",
+        default="circle",
+        help="Plotted shapes.  Options: 'circle','rectangle' (default circle)")
+    graphGroup.add_option(
+        "-c", 
+        "--color",
+        dest="color",
+        default="#0e51a7:#0acf00:#ff9e00:#fd0006",
+        help = "RGB colors for graph.  List of colors in format: #012345:#6789AB:#2468AC:#13579B, for (1/1 frequency, 1/0 frequency, exonColor, exonColor)"                  )
     parser.add_option_group(infoGroup)
     parser.add_option_group(graphGroup)
+    parser.add_option_group(outputGroup)
     (options, args) = parser.parse_args()
+    
     #use regular expressions to evaluate the user's choices
+    #evaluate the region choices
     try:
         regionRE=re.compile(r'(.+):(\d+)-(\d+)')
         m=regionRE.match(options.region)
@@ -136,6 +151,7 @@ def OptionSetUp():
     except Exception as e:
         print >> sys.stderr, e
         die( 'Invalid region specification:  ' + options.region )
+    #evaluate the scale choices
     try:
         scaleRE=re.compile(r'(\d+):(\d+)')
         y=scaleRE.match(options.yscale)
@@ -144,10 +160,29 @@ def OptionSetUp():
     except Exception as e:
         print >> sys.stderr, e
         print "Invalid yscale region.  Defaulting to 25 cases, 25 controls."
-        options.ymin=7
-        options.ymax=7
+        options.ymin=25
+        options.ymax=25
+    #evaluate the color choices
+    try:
+        splitColor=re.split('#([A-Fa-f0-9]{6})', options.color)
+        options.colorallele2='#'+splitColor[1]
+        options.colorallele1='#'+splitColor[3]
+        options.exoncolor1='#'+splitColor[5]
+        options.exoncolor2='#'+splitColor[7]
+    except Exception as e:
+        print >> sys.stderr, e
+        print "Invalid color scheme.  Defaulting to original colors."
+        options.colorallele2='#0e51a7'
+        options.colorallele1='#0acf00'
+        options.exoncolor1='#ff9e00'
+        options.exoncolor2='#fd0006'
+    #Check for given title for graph.  If none, default to gene.
     if options.title=="":
         options.title=options.gene
+    #Check for desired shape.  If none, default to circle.
+    if ((options.shape!="circle") and (options.shape!="rect") and (options.shape!="rectangle")):
+        print "Invalid shape %s chosen. Defaulting to circle."%options.shape        
+        options.shape="circle"
     return (options, args)
 
 
@@ -158,19 +193,41 @@ def dataSetup( options ):
     refFlat = bed.BED(options.bed, keys=refFlatKeys)
     bedRow=[row for row in refFlat if row['name']==options.gene ][0]
     #make an exon dictionary of the base pairs, defaulting to an exon if chosen start is in an exon
-    exonDict=dp.exonbplist(bedRow.get_exons(), options.introns)
+    exonDict=gp.exonbplist(bedRow.get_exons(), options.introns)
     if not exonDict.has_key(options.start):
-        options.start=dp.bp2exonbp(bedRow.get_exons(), options.start)
+        options.start=gp.bp2exonbp(bedRow.get_exons(), options.start)
     else:
         options.start=exonDict[options.start]
     if not exonDict.has_key(options.stop):
-        options.stop=dp.bp2exonbp(bedRow.get_exons(), options.stop)
+        options.stop=gp.bp2exonbp(bedRow.get_exons(), options.stop)
     else:
         options.stop=exonDict[options.stop]
     return exonDict, bedRow, options, traits
 
-if __name__ == "__main__":
+def printOptions( options ):
+    '''Prints out the chosen options.  Can be used for debugging or user info.'''
+    print "Chosen options:"
+    print "  Genetic information options:"
+    print "    hg build:\t\t%s"%options.build
+    print "    Grouping:\t\t%s"%options.groups
+    print "    Gene:\t\t%s"%options.gene 
+    print "    UCSC bed:\t\t%s"%options.bed
+    print "    VCF gene file:\t%s"%options.vcf_file
+    
+    print "  Graph options:"
+    print "    Title: \t\t%s"%options.title
+    print "    Region:\t\t%s: "%options.chrom+"%s-"%options.start+"%s"%options.stop
+    print "    Cases/Controls: \t%s"%options.ymin+"/%s"%options.ymax
+    print "    Show Introns: \t%s"%options.introns
+    print "    Colors: \t\t%s"%options.color
+    
+    print "  Output options:"
+    print "    Show graph? \t%s"%options.graph
+    print "    Output prefix: \t%s"%options.prefix
+    print "    Save as png? \t%s"%options.png
+    print "    Save as pdf? \t%s"%options.pdf
 
+if __name__ == "__main__":
     options, args = OptionSetUp()
     #load the vcf file containing the genotypes
     #this is placed here instead of in dataSetup due to import restrictions
@@ -185,7 +242,7 @@ if __name__ == "__main__":
         #vcfutils requires options.chrom to be a string, whereas vcf requires options.chrom to be an int
         vstuff = v.fetch_range(int(options.chrom), options.start, options.stop)
     exonDict, bedRow, options, traits = dataSetup(options)
-    dp.dotHistogram(options, vstuff, exonDict, bedRow, traits)
+    gp.histogram(options, vstuff, exonDict, bedRow, traits)
     if options.interact:
         try:
             from IPython.Shell import IPShellEmbed  # enter interactive ipython

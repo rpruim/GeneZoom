@@ -8,7 +8,7 @@ conf_file = find_relative("conf/gz.conf");
 if conf_file:
 	execfile(conf_file)
 else:
-	warn('Unable to find configuration file.  Preceding anyway.')
+	warn('Unable to find configuration file.  Proceeding anyway.')
 	gz_options = {}
 
 gz_options['R'] = False

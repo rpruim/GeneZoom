@@ -163,8 +163,9 @@ class tabixReader:
 			assert( readUInt16(self._bgzf) == 2 )
 			bsize = readUInt16(self._bgzf)  # total block size minus 1
 
-		except AssertionException:
+		except AssertionError as e:
 			logging.critical( "Cannot resolve bgzf file format issues.")
+			logging.critical( repr(e) )
 		self._bgzf.seek( coffset ) # bin_info['chunk_begin_coffset'] )
 		s = zlib.decompress( self._bgzf.read(  bsize + 1), zlib.MAX_WBITS + 32 )
 		return s

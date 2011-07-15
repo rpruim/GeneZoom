@@ -206,13 +206,3 @@ class tabixReader:
 	def reg2vcf(self, chrom, start, end):
 		return[ vcfrow.VCFrow(s) for s in self.reg2strings(chrom,start,end) ]
 
-#	def reg2offsets(self, chrom, start, end):
-#		bins = reg2overlappingBins(start, end)
-#		result = []
-#		for b in bins:
-#			try:
-#				result.append(self.bin2offset(chrom, bin))
-#				# result.append(self._tbi[chrom]['bin'][b])
-#			except:
-#				pass
-#		return result

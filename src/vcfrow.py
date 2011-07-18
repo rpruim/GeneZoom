@@ -2,6 +2,7 @@ import re
 #import os
 #import sys
 import string
+import logging
 
 
 def getItemByNameFromEqList(list, key):
@@ -34,6 +35,10 @@ class VCFrow:
 
 	def get_altAllele(self, key=None):
 		return getItemByNameFromEqList( self._items[4].split(';') , key )
+
+	def is_indel(self):
+		logging.debug('Could implement a better check for indels')
+		return not len(self.get_refAllele()) == len(self.get_altAllele()[0])
 
 	def get_qual(self, key=None):
 		return getItemByNameFromEqList( self._items[5].split(';') , key )

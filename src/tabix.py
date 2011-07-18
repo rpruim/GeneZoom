@@ -11,6 +11,15 @@ import re
 import struct
 import logging
 import vcfrow
+import shlex
+
+#commaSepRE = re.compile(r'([^,]*),{0,1}(?!(?<=(?:^|,)\s*"(?:[^"]|""|\\")*,)(?:[^"]|""|\\")*"\s*(?:,|$))')
+
+def parseLine(line):
+	my_splitter = shlex.shlex(line, posix=True)
+	my_splitter.whitespace = ','  
+	my_splitter.whitespace_split = True 
+	return list(my_splitter)
 
 def readChar(fh):
 	return struct.unpack( '<c', fh.read(1) )[0]
@@ -66,10 +75,62 @@ def reg2overlappingBins(rbeg, rend):
 
 class tabixReader:
 
+
 	def __init__(self, filename):
+		self._vcf = False
+		self._headerStr = None
+		self._metaInfoStr = None
 		self._bgzf_filename = filename
 		self._tbi_filename = filename + '.tbi'
+		self._vcf = self.read_vcf_header()
 		self.open()
+
+	def read_vcf_header(self, blocksize=1024*1024):
+		print "Reading vcf headers ..."
+		headerRE = re.compile(r"(.+?)(#CHROM[^\n]+)", re.M + re.DOTALL)
+		self._bgzf = multiopen(self._bgzf_filename)
+		self._vcf = False
+
+		# grab header and meta information
+		attempts = 0
+		while attempts < 10:
+			attempts = attempts + 1
+			self._bgzf.seek(0)
+			top_of_file = self._bgzf.read(blocksize)
+			m = headerRE.search(top_of_file)
+			if not m:
+				blocksize = blocksize * 4
+				continue
+			self._metaInfoStr = m.group(1)
+			self._metaInfo = {}
+			for line in self._metaInfoStr.split('\n')[:-1]:     # removing trailing empty line
+				if not line[:2] == '##':
+					logging.critical(line)
+					return False
+				(key, val) = line[2:].split('=', 1)
+				if not key in self._metaInfo:
+					self._metaInfo[key] = []
+				if val[0] == '<' and val[-1] == '>':
+					self._metaInfo[key].append(
+						dict([[k,v.strip('"')] for (k,v) in [item.split('=',1) for item in parseLine(val[1:-1])] ])
+						)
+				else:
+					self._metaInfo[key].append(val.strip('"'))
+
+			self._headerStr = m.group(2)
+			self._headers = self._headerStr.split('\t')
+			self._num_cols = len(self._headers)
+			self._vcf = True
+			self._bgzf.close()
+			try:
+				assert(self._metaInfo['fileformat'][0] == 'VCFv4.0')
+			except:
+				logging.critical("File format does not match 'VCFv4.0'.  Proceed with caution.")
+			return( self._vcf )
+
+		# if we arrive here, we ran out of attempts to read full header
+		self._bgzf.close()
+		return( False)
 
 	def open(self):
 		try:
@@ -104,7 +165,8 @@ class tabixReader:
 					cnk_beg = readUInt64(self._tbi)
 					cnk_end = readUInt64(self._tbi)
 					self._index[name]['bins'].append( 
-						(bin_nr, c, n_chunk, cnk_beg >> 16, cnk_beg % (1<<16), cnk_end >> 16, cnk_end % (1<<16), cnk_end - cnk_beg) 
+						(bin_nr, c, n_chunk, cnk_beg >> 16, cnk_beg % (1<<16), \
+								cnk_end >> 16, cnk_end % (1<<16), cnk_end - cnk_beg) 
 					)
 					self._index[name]['bin'][bin_nr] = \
 						{ 'nr': bin_nr,
@@ -126,6 +188,9 @@ class tabixReader:
 		self._tbi.close()
 		self._bgzf.close()
 
+	def is_vcf(self):
+		return self._vcf
+
 	def get_tbi_header(self):
 
 		return { 
@@ -146,7 +211,9 @@ class tabixReader:
 			return	self._index[chrom]['bin'][bin]
 		except KeyError:
 			return None
-
+	'''
+	returns an uncompressed string and the number of compressed bits used to store it.
+	'''
 	def coffset2string(self, coffset):
 		self._bgzf.seek( coffset ) # bin_info['chunk_begin_coffset'] )
 		try:
@@ -168,20 +235,32 @@ class tabixReader:
 			logging.critical( repr(e) )
 		self._bgzf.seek( coffset ) # bin_info['chunk_begin_coffset'] )
 		s = zlib.decompress( self._bgzf.read(  bsize + 1), zlib.MAX_WBITS + 32 )
-		return s
+		return (s, bsize + 1)
 
 	def bin2string(self, chrom, bin):
 		bin_info = self.bin2offset(chrom, bin)
 		if bin_info == None:
 			return None
 
-		s = self.coffset2string(bin_info['chunk_begin_coffset'])
-		if  bin_info['chunk_begin_coffset'] == bin_info['chunk_end_coffset']:
-			return s[ bin_info['chunk_begin_uoffset']:bin_info['chunk_end_uoffset'] ]
+		s = ""
+		coffset = bin_info['chunk_begin_coffset']
+		while coffset <= bin_info['chunk_end_coffset']:
+			(t, csize) = self.coffset2string(coffset)
+			# trim tail if last part
+			if coffset == bin_info['chunk_end_coffset']:               
+				t = t[:bin_info['chunk_end_uoffset']]
+			# trim head if first part:
+			if coffset == bin_info['chunk_begin_coffset']:
+				t = t[ bin_info['chunk_begin_uoffset']:]
+			# accumulate
+			s = s + t
+			coffset = coffset + csize
 
-		logging.debug('Should add a consistency check here when spanning multiple blocks.')
-		t = self.coffset2string(bin_info['chunk_end_coffset'])
-		return s[ bin_info['chunk_begin_uoffset']: ] + t[ :bin_info['chunk_end_uoffset'] ] 
+		return(s)
+
+#		logging.debug('Should add a consistency check here when spanning multiple blocks.')
+#		t = self.coffset2string(bin_info['chunk_end_coffset'])
+#		return s[ bin_info['chunk_begin_uoffset']: ] + t[ :bin_info['chunk_end_uoffset'] ] 
 
 	def bin2vcf(self, chrom, bin):
 		s = self.bin2string(chrom, bin)
@@ -198,7 +277,7 @@ class tabixReader:
 		for b in bins:
 			s = self.bin2string(chrom, b)
 			if s != None:
-				result.extend( s.split('\n') )
+				result.extend( [ x for x in s.split('\n') if len(x) > 0 ] )  # omit empty strings (incl. dangler)
 		return result
 		
 	def reg2list(self, chrom, start, end):

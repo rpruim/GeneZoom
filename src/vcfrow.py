@@ -22,7 +22,7 @@ class VCFrow:
 		return self._items[0]
 
 	def get_pos(self):
-		return self._items[1]
+		return int(self._items[1])
 
 	def get_locus(self):
 		return ( int(self._items[0]),  int(self._items[1]) )

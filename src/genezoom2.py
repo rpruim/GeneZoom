@@ -236,8 +236,6 @@ if __name__ == "__main__":
         v=tabixReader(options.vcf_file)
         vstuff = v.reg2vcf(options.chrom, options.start, options.stop)
         logging.debug('Using tabix.py')
-        for v in vstuff:
-            print v.get_name(), v.get_locus()
     except Exception as e:
         print e
     exonDict, bedRow, options, traits = dataSetup(options)

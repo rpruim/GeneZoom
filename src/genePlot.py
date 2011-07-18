@@ -173,4 +173,3 @@ if __name__ == "__main__":
     tuples=((22, 24), (37, 40), (52, 53), (55, 60))
     print exonbplist(tuples, False)
     print exonbplist(tuples, True)
-    

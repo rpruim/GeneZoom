@@ -238,7 +238,6 @@ if __name__ == "__main__":
         logging.debug('Using tabix.py')
         for v in vstuff:
             print v.get_name(), v.get_locus()
-            print v._items[:8]
     except Exception as e:
         print e
     exonDict, bedRow, options, traits = dataSetup(options)

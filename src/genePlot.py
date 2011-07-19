@@ -6,6 +6,7 @@ A program to generate a dotgraph based on information acquired from a vcf file, 
 '''
 
 import CrossTable
+import os
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Rectangle, Ellipse, RegularPolygon
 from matplotlib.lines import Line2D
@@ -148,6 +149,11 @@ def SetupPlot(start, end, ymin, ymax, options):
 
     return ax1, ax2, fig
 
+def checkDir():
+    '''Checks to see if a results directory exists.  If it does not, it creates one.'''
+    dirname="results"
+    if not os.path.isdir("./" + dirname + "/"):
+        os.mkdir("./" + dirname + "/")
 
 def histogram(options, vstuff, exonDict, bedRow, traits):
     '''Creates a histogram based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
@@ -163,9 +169,10 @@ def histogram(options, vstuff, exonDict, bedRow, traits):
     ax2.add_collection(exonRect)
     ax2.add_line(Line2D([-1, 100000000000], [0, 0],linewidth=1, color='black'))
     if options.png:
-        fig.savefig(options.prefix+'.png')
+        checkDir()
+        fig.savefig("results/"+options.prefix+'.png')
     if options.pdf:
-        fig.savefig(options.prefix+'.pdf')
+        fig.savefig("results/"+options.prefix+'.pdf')
     if options.graph:
         plt.show()
 ############################################################

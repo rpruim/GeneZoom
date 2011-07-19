@@ -311,7 +311,8 @@ class tabixReader:
 		return [ s.split('\t') for s in self.reg2strings(chrom, start, end) ]
 
 	def reg2vcf(self, chrom, start, end):
-		return[ vcfrow.VCFrow(s) for s in self.reg2strings(chrom,start,end) ]
+		result = [ vcfrow.VCFrow(s) for s in self.reg2strings(chrom,start,end) ]
+		return [ m for m in result if start <= m.get_pos() < end and m.get_chrom() == chrom ]
 
 if __name__ == "__main__":
 	filename = '../testing/data/hapmap_3.3.b37.vcf.gz'
@@ -326,10 +327,12 @@ if __name__ == "__main__":
 	start = 1234567
 	end = 1234567+50000
 	chrom = '1'
-	v1 = r.reg2vcf(chrom, start, end)
-	v = [ a for a in v1 if start <= a.get_pos() < end ]
+	v = r.reg2vcf(chrom, start, end)
+	#v = [ a for a in v1 if start <= a.get_pos() < end ]
 	print len(v), ' markers found in requested region (', chrom, ':', start, '-', end, ')'
+	print "\n"
 	print "\t     filter: ", tally( [ ','.join(m.get_filter()) for m in v ] ) 
+	print "\n"
 	m = v[0]
 	print 'Info for first marker:'
 	print '\t    name: ', m.get_name()

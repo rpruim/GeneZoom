@@ -19,8 +19,14 @@ import shlex
 betweenness check for half-open interval
 '''
 
-def between(a, x, y):
-	return x <= a < y
+def tally(list):
+	result = {}
+	for item in list:
+		try:
+			result[ item ] = 1 + result[ item ]
+		except KeyError:
+			result[ item ] = 1 
+	return result
 
 def parseLine(line):
 	my_splitter = shlex.shlex(line, posix=True)
@@ -323,6 +329,7 @@ if __name__ == "__main__":
 	v1 = r.reg2vcf(chrom, start, end)
 	v = [ a for a in v1 if start <= a.get_pos() < end ]
 	print len(v), ' markers found in requested region (', chrom, ':', start, '-', end, ')'
+	print "\t     filter: ", tally( [ ','.join(m.get_filter()) for m in v ] ) 
 	m = v[0]
 	print 'Info for first marker:'
 	print '\t    name: ', m.get_name()
@@ -336,3 +343,5 @@ if __name__ == "__main__":
 	print '\t    qual: ', m.get_qual()
 	print '\t  format: ', m.get_format()
 	print '\tGT tally: ', m.genotypeTally()
+	print '\tGT tally: ', tally(m.get_genotypes())
+

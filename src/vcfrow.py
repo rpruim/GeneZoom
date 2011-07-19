@@ -13,15 +13,6 @@ def getItemByNameFromEqList(list, key):
 	result = [ v for (k,v) in zip(keys, vals) if k == key ]
 	return result
 
-def tally(list):
-	result = {}
-	for item in list:
-		try:
-			result[ item ] = 1 + result[ item ]
-		except KeyError:
-			result[ item ] = 1 
-	return result
-
 class VCFrow:
 	def __init__(self, s):
 		s.strip()

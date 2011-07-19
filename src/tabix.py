@@ -286,3 +286,26 @@ class tabixReader:
 	def reg2vcf(self, chrom, start, end):
 		return[ vcfrow.VCFrow(s) for s in self.reg2strings(chrom,start,end) ]
 
+if __name__ == "__main__":
+	filename = '../testing/data/hapmap_3.3.b37.vcf.gz'
+	filename = '../testing/data/458small.vcf.gz'
+	print 'loading data from ', filename, '...'
+	r = tabixReader(filename)
+	print "\nMeta Info available: ",
+	print [ k for k in r._metaInfo ]
+	print r._metaInfo['fileformat']
+	v = r.reg2vcf('1', 1234567, 1234567 + 50000)
+	print len(v), ' markers found in requested region'
+	m = v[0]
+	print 'Info for first marker:'
+	print '\t  name: ', m.get_name()
+	print '\t chrom: ', m.get_chrom()
+	print '\t   pos: ', m.get_pos()
+	print '\t locus: ', m.get_locus()
+	print '\t   ref: ', m.get_refAllele()
+	print '\t   alt: ', m.get_altAllele()
+	print '\tfilter: ', m.get_filter()
+	print '\t  info: ', m.get_info()
+	print '\t  qual: ', m.get_qual()
+	print '\tformat: ', m.get_format()
+	print '\t tally: ', m.genotypeTally()

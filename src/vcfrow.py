@@ -36,6 +36,9 @@ class VCFrow:
 	def get_altAllele(self, key=None):
 		return getItemByNameFromEqList( self._items[4].split(',') , key )
 
+	def get_numAlleles(self):
+		return 1 + len(self.get_altAllele())
+
 	def is_indel(self):
 		logging.debug('Could implement a better check for indels')
 		return not len(self.get_refAllele()) == len(self.get_altAllele()[0])
@@ -59,10 +62,10 @@ class VCFrow:
 	in this field corresponding to the types specified in the format. The first
 	sub-field must always be the genotype (GT).
 	'''
-	def get_genotypes(self, start=9, stop=None):
-		if stop == None:
-			stop = len(self._items)
-		return [ g.split(":")[0] for g in self._items[start:stop] ]
+	def get_genotypes(self):
+		return self.get('GT') 
+		# start=9
+		# return [ g.split(":")[0] for g in self._items[start:] ]
 
 	def genotypeTally(self, start=9, stop=None):
 		if stop == None:

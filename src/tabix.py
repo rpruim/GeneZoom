@@ -234,7 +234,7 @@ class tabixReader:
 			logging.critical( "Cannot resolve bgzf file format issues.")
 			logging.critical( repr(e) )
 		self._bgzf.seek( coffset ) # bin_info['chunk_begin_coffset'] )
-		s = zlib.decompress( self._bgzf.read(  bsize + 1), zlib.MAX_WBITS + 32 )
+		s = zlib.decompress( self._bgzf.read(  bsize + 1), zlib.MAX_WBITS + 16 )
 		return (s, bsize + 1)
 
 	def bin2string(self, chrom, bin):

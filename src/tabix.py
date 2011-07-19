@@ -15,6 +15,13 @@ import shlex
 
 #commaSepRE = re.compile(r'([^,]*),{0,1}(?!(?<=(?:^|,)\s*"(?:[^"]|""|\\")*,)(?:[^"]|""|\\")*"\s*(?:,|$))')
 
+'''
+betweenness check for half-open interval
+'''
+
+def between(a, x, y):
+	return x <= a < y
+
 def parseLine(line):
 	my_splitter = shlex.shlex(line, posix=True)
 	my_splitter.whitespace = ','  
@@ -191,6 +198,20 @@ class tabixReader:
 	def is_vcf(self):
 		return self._vcf
 
+	def get_meta_keys(self):
+		return [ k for k in self._metaInfo ]
+
+	def get_meta(self, key=None, index=None, subkey=None):
+		if key == None:
+			return self._metaInfo
+		if index == None and subkey == None:
+			return self._metaInfo[key]
+		if index == None:
+			return [ a[subkey] for a in self._metaInfo[key] ]
+		if subkey == None:
+			return self._metaInfo[key][index]
+		return self._metaInfo[key][index][subkey]
+
 	def get_tbi_header(self):
 
 		return { 
@@ -292,20 +313,26 @@ if __name__ == "__main__":
 	print 'loading data from ', filename, '...'
 	r = tabixReader(filename)
 	print "\nMeta Info available: ",
-	print [ k for k in r._metaInfo ]
-	print r._metaInfo['fileformat']
-	v = r.reg2vcf('1', 1234567, 1234567 + 50000)
-	print len(v), ' markers found in requested region'
+	print r.get_meta_keys()
+	print "\tFile format: ",r.get_meta('fileformat')[0]
+	print "\t     source: ",r.get_meta('source')[0]
+	print "\n"
+	start = 1234567
+	end = 1234567+50000
+	chrom = '1'
+	v1 = r.reg2vcf(chrom, start, end)
+	v = [ a for a in v1 if start <= a.get_pos() < end ]
+	print len(v), ' markers found in requested region (', chrom, ':', start, '-', end, ')'
 	m = v[0]
 	print 'Info for first marker:'
-	print '\t  name: ', m.get_name()
-	print '\t chrom: ', m.get_chrom()
-	print '\t   pos: ', m.get_pos()
-	print '\t locus: ', m.get_locus()
-	print '\t   ref: ', m.get_refAllele()
-	print '\t   alt: ', m.get_altAllele()
-	print '\tfilter: ', m.get_filter()
-	print '\t  info: ', m.get_info()
-	print '\t  qual: ', m.get_qual()
-	print '\tformat: ', m.get_format()
-	print '\t tally: ', m.genotypeTally()
+	print '\t    name: ', m.get_name()
+	print '\t   chrom: ', m.get_chrom()
+	print '\t     pos: ', m.get_pos()
+	print '\t   locus: ', m.get_locus()
+	print '\t     ref: ', m.get_refAllele()
+	print '\t     alt: ', m.get_altAllele()
+	print '\t  filter: ', m.get_filter()
+	print '\t    info: ', m.get_info()
+	print '\t    qual: ', m.get_qual()
+	print '\t  format: ', m.get_format()
+	print '\tGT tally: ', m.genotypeTally()

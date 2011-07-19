@@ -13,6 +13,15 @@ def getItemByNameFromEqList(list, key):
 	result = [ v for (k,v) in zip(keys, vals) if k == key ]
 	return result
 
+def tally(list):
+	result = {}
+	for item in list:
+		try:
+			result[ item ] = 1 + result[ item ]
+		except KeyError:
+			result[ item ] = 1 
+	return result
+
 class VCFrow:
 	def __init__(self, s):
 		s.strip()
@@ -34,7 +43,7 @@ class VCFrow:
 		return self._items[3]
 
 	def get_altAllele(self, key=None):
-		return getItemByNameFromEqList( self._items[4].split(';') , key )
+		return getItemByNameFromEqList( self._items[4].split(',') , key )
 
 	def is_indel(self):
 		logging.debug('Could implement a better check for indels')
@@ -51,12 +60,18 @@ class VCFrow:
 
 	def get_format(self, key=None):
 		return getItemByNameFromEqList( self._items[8].split(';') , key )
-
+	'''
+	From VCF 4.0 spec:
+	If genotype information is present, then the same types of data must be present
+	for all samples. First a FORMAT field is given specifying the data types and
+	order. This is followed by one field per sample, with the colon-separated data
+	in this field corresponding to the types specified in the format. The first
+	sub-field must always be the genotype (GT).
+	'''
 	def get_genotypes(self, start=9, stop=None):
 		if stop == None:
 			stop = len(self._items)
 		return [ g.split(":")[0] for g in self._items[start:stop] ]
-		# return [ string.split(g,":")[0] for g in self._items[start:stop] ]
 
 	def genotypeTally(self, start=9, stop=None):
 		if stop == None:
@@ -69,6 +84,16 @@ class VCFrow:
 			except KeyError:
 				result[ keys[0] ] = 1 
 
+		return result
+
+	def get(self, key, cast=str):
+		i = min( [ a for (a,b) in zip( range(len(self._items[8])), self._items[8].split(':')) if b == key ] )
+		result = []
+		for item in self._items[9:]:
+			try:
+				result.append( cast(item.split(':')[i]) )
+			except IndexError:
+				result.append(None)
 		return result
 
 	def __len__(self):

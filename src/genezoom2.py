@@ -195,11 +195,11 @@ def dataSetup( options ):
     #make an exon dictionary of the base pairs, defaulting to an exon if chosen start is in an exon
     exonDict=gp.exonbplist(bedRow.get_exons(), options.introns)
     if not exonDict.has_key(options.start):
-        options.start=gp.bp2exonbp(bedRow.get_exons(), options.start)
+        options.start=gp.bp2exonbp(bedRow.get_exons(), options.start, options.introns)
     else:
         options.start=exonDict[options.start]
     if not exonDict.has_key(options.stop):
-        options.stop=gp.bp2exonbp(bedRow.get_exons(), options.stop)
+        options.stop=gp.bp2exonbp(bedRow.get_exons(), options.stop, options.introns)
     else:
         options.stop=exonDict[options.stop]
     return exonDict, bedRow, options, traits

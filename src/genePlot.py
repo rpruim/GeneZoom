@@ -146,7 +146,10 @@ def SetupPlot(start, end, ymin, ymax, options):
     horizontalLine=Line2D([-1, 100000000], [0, 0],linewidth=1, color='black')
     ax1.add_line(horizontalLine)
     leg1=ax1.legend((Ellipse((0,0), 1, 1, color='#0e51a7'), Ellipse((0,0), 1, 1, color='#0acf00')),('1/1', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=10))
-    leg1.draggable(state=True, use_blit=True)
+	try:
+    	leg1.draggable(state=True, use_blit=True)
+	except:
+		pass
     #fig.subplots_adjust(bottom=0.2)
 
     return ax1, ax2, fig

@@ -54,7 +54,7 @@ def OptionSetUp():
     infoGroup.add_option(
         "-v", "--vcf", 
         dest="vcf_file", 
-        default="../testing/data/458small.vcf.gz",
+        default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
         help ="vcf file containing genotypes", 
         metavar="FILE")
     infoGroup.add_option(
@@ -111,8 +111,8 @@ def OptionSetUp():
         "-y", "--yscale", 
         dest="yscale", 
         default='25:25',
-        help="number of cases shown: number of controls shown", 
-        metavar="cases:controls")
+        help="number of controls shown: number of cases shown", 
+        metavar="controls:cases")
     graphGroup.add_option(
         "--introns",
         dest="introns",
@@ -159,7 +159,7 @@ def OptionSetUp():
         options.ymax=int(y.groups()[1])
     except Exception as e:
         print >> sys.stderr, e
-        print "Invalid yscale region.  Defaulting to 25 cases, 25 controls."
+        print "Invalid yscale region.  Defaulting to 25 controls, 25 cases."
         options.ymin=25
         options.ymax=25
     #evaluate the color choices

@@ -36,7 +36,7 @@ def bp2exonbp(tupleList, number, introns):
             return sum - 1
         else:
             sum = sum + entry[1] - entry[0]
-    return sum + 1
+    return sum-1
 
 def exonbplist(tupleList, introns):
     '''Receives the list of tuples, returns a dictionary with the exon bp locations accessed by keys pertaining to their base pair.  Each element of the dictionary will be in the form basepair:location'''
@@ -44,9 +44,9 @@ def exonbplist(tupleList, introns):
     location = 0
     oldEntry = 0    
     for entry in tupleList:
-        if oldEntry != 0: #if we are at the beginning of the list, or if we are graphing introns
-            location += entry[0] - oldEntry - 1 #add the distance between the last entry and this one to the location
-        for i in range(entry[0], entry[1] + 1): #for each number within our tuple
+        if oldEntry != 0: #if we are not at the beginning of the list, and are graphing introns
+            location += entry[0] - oldEntry #add the distance between the last entry and this one to the location
+        for i in range(entry[0], entry[1]): #for each number within our tuple
             exonDict[i] = location #set its location to where it is in the tuple
             location += 1 #advance to next location
         if introns: #if we are graphing introns
@@ -62,13 +62,13 @@ def drawExon(exonTupleList, exonDict, options):
     exonColor = 1
 
     for exon in exonTupleList:
-        #width assumes inclusive nature for exons: that is, exon (20,22) is [20,22] and a width 2 rectangle will be drawn
+        #width assumes exclusive nature for exons: that is, exon (20,22) is [20,22) and a width 1 rectangle will be drawn
         if options.introns: #if drawing introns
             start = exonDict[exon[0]] #make the start the location given by the exonDict
-            width = exonDict[exon[1]] - exonDict[exon[0]] #make the width equal to the width between the locations
+            width = exonDict[exon[1]] - exonDict[exon[0]]-1 #make the width equal to the width between the locations
         else: #if drawing only exons
             start = loc #make the start at our current location
-            width = exon[1] - exon[0] #make the width our distance between pairs
+            width = exon[1] - exon[0] - 1 #make the width our distance between pairs
         #for exon colors
         if exonColor % 2 == 1: col = options.exoncolor1 #if odd, use exoncolor1
         else: col = options.exoncolor2 #if even, use exoncolor2
@@ -187,4 +187,11 @@ def histogram(options, vstuff, exonDict, bedRow, traits):
         plt.show()
 ############################################################
 if __name__ == "__main__":
-    pass
+    tupleList=((3, 6), (10, 14), (16, 19))
+    print tupleList
+    print "{",
+    for i in range(3, 20):
+        print "%s: %s,"%(i, bp2exonbp(tupleList, i, False)),
+    print "}"
+    print exonbplist(tupleList, False)
+    print exonbplist(tupleList, True)

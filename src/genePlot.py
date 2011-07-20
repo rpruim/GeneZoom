@@ -101,9 +101,9 @@ def patchPlot(stuff, xLoc, options):
     for ccEntry in stuff.keys():
         #Graph of the first list of data ('case') in our data set
         if ccEntry=='control':
-            patchLoc=patchHeight/2
-        else:    
             patchLoc=-patchHeight/2
+        else:    
+            patchLoc=patchHeight/2
         oneCount=0
         twoCount=0
         if stuff[ccEntry].has_key('1/0'):
@@ -134,7 +134,7 @@ def SetupPlot(start, end, ymin, ymax, options):
     ax2.set_ylim(-5, 5)
     #set up titles, labels, and ticks
     ax1.set_title(options.title)
-    ax1.set_ylabel("case                         control")
+    ax1.set_ylabel("control                          case")
     ax2.set_xlabel("Chromosome")
     ax1.grid(True)        
     ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: str(int((abs(x))))))#set ticks to absolute value
@@ -146,10 +146,7 @@ def SetupPlot(start, end, ymin, ymax, options):
     horizontalLine=Line2D([-1, 100000000], [0, 0],linewidth=1, color='black')
     ax1.add_line(horizontalLine)
     leg1=ax1.legend((Ellipse((0,0), 1, 1, color='#0e51a7'), Ellipse((0,0), 1, 1, color='#0acf00')),('1/1', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=10))
-    try:
-        leg1.draggable(state=True, use_blit=True)
-    except:
-        pass
+    leg1.draggable(state=True, use_blit=True)
     #fig.subplots_adjust(bottom=0.2)
 
     return ax1, ax2, fig

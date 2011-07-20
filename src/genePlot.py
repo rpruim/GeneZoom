@@ -16,10 +16,12 @@ from matplotlib import font_manager
 
 ######################################################
 
-def bp2exonbp(tupleList, number):
+def bp2exonbp(tupleList, number, introns):
     '''Method to convert a base pair to its location as a base pair in the exon.
     Receives a list of tuples and the number of the base pair, returns the location in the exons (or returns the last location in the previous exon).'''
     sum=0
+    if introns:
+        return number-tupleList[0][0]
     #whether it should be 0-based or 1-based
     base=0
     number=int(number)
@@ -156,7 +158,7 @@ def checkDir():
         os.mkdir("./" + dirname + "/")
 
 def histogram(options, vstuff, exonDict, bedRow, traits):
-    '''Creates a histogram based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
+    '''Creates a plot based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
     ax1, ax2, fig=SetupPlot(options.start, options.stop, options.ymin*-1, options.ymax, options)
     #for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
     for v in vstuff:

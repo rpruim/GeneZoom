@@ -239,7 +239,7 @@ if __name__ == "__main__":
     except Exception as e:
         print e
     exonDict, bedRow, options, traits = dataSetup(options)
-    gp.histogram(options, vstuff, exonDict, bedRow, traits)
+    gp.pictograph(options, vstuff, exonDict, bedRow, traits)
 
     if options.interact:
         try:

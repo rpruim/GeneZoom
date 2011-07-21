@@ -98,7 +98,7 @@ def multiPatch(patches, patchAmount, xLoc, patchLoc, patchWidth, patchHeight, co
 
 
 def patchPlot(stuff, xLoc, options):
-    '''Create a histogram graph, receiving a crosstable and an xLoc.'''
+    '''Create a graph of tabulation, receiving a crosstable and an xLoc.'''
     #initialization of our patches, with a blank circle to avoid errors of empty list
     patches = [Circle([xLoc, 0], 1, color='white', alpha=0)] 
     patchWidth = 0.4
@@ -158,13 +158,18 @@ def SetupPlot(start, end, ymin, ymax, options):
 
     return ax1, ax2, fig
 
-def checkDir():
-    '''Checks to see if a results directory exists.  If it does not, it creates one.'''
-    dirname = "results"
-    if not os.path.isdir("./" + dirname + "/"):
+def saveGraph(fileTitle, dirname, extension):
+    '''Saves file under directory, first checking to see if the directory exists, then if the file already exists, creating a new directory or new name based on needs.'''
+    if not os.path.isdir("./" + dirname + "/"): #if the directory doesn't exist, then create it
         os.mkdir("./" + dirname + "/")
-
-def histogram(options, vstuff, exonDict, bedRow, traits):
+    filename= dirname + "/" + fileTitle + extension
+    i=1
+    while os.path.isfile(filename): #if the filename already exists, then make a new name
+        filename=dirname + "/" + fileTitle + "(%s)"%i + extension
+        i+=1
+    return filename #save the figure under our created filename
+    
+def pictograph(options, vstuff, exonDict, bedRow, traits):
     '''Creates a plot based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
     ax1, ax2, fig = SetupPlot(options.start, options.stop, options.ymin * -1, options.ymax, options) #initialize the graph, with proper range and choices
     #for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
@@ -177,12 +182,10 @@ def histogram(options, vstuff, exonDict, bedRow, traits):
     exonRect = drawExon(bedRow.get_exons(), exonDict, options) #draw the exons
     ax2.add_collection(exonRect) #add the collections to the graph
     ax2.add_line(Line2D([-1, 100000000000], [0, 0], linewidth=1, color='black'))
-    if options.png: #if user has chosen to save graph as a png
-        checkDir() #check to see if results directory exists
-        fig.savefig("results/" + options.prefix + '.png') #save graph as png
-    if options.pdf: #if user has chosen to save graph as a pdf
-        checkDir() #check to see if results directory exists
-        fig.savefig("results/" + options.prefix + '.pdf') #save graph as pdf
+    if options.png: #if user has chosen to save graph as a png, save it
+        fig.savefig(saveGraph(options.prefix, "results", ".png"))
+    if options.pdf: #if user has chosen to save graph as a pdf, save it
+        fig.savefig(saveGraph(options.prefix, "results", ".pdf"))
     if options.graph: #if user has chosen to show the graph, then show it
         plt.show()
 ############################################################

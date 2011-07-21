@@ -242,7 +242,7 @@ if __name__ == "__main__":
         #vcfutils requires options.chrom to be a string, whereas vcf requires options.chrom to be an int
         vstuff = v.fetch_range(int(options.chrom), options.start, options.stop)
     exonDict, bedRow, options, traits = dataSetup(options)
-    gp.histogram(options, vstuff, exonDict, bedRow, traits)
+    gp.pictograph(options, vstuff, exonDict, bedRow, traits)
     if options.interact:
         try:
             from IPython.Shell import IPShellEmbed  # enter interactive ipython

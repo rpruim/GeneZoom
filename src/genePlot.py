@@ -65,7 +65,7 @@ def drawExon(exonTupleList, exonDict, options):
         #width assumes exclusive nature for exons: that is, exon (20,22) is [20,22) and a width 1 rectangle will be drawn
         if options.introns: #if drawing introns
             start = exonDict[exon[0]] #make the start the location given by the exonDict
-            width = exonDict[exon[1]] - exonDict[exon[0]]-1 #make the width equal to the width between the locations
+            width = exonDict[exon[1]-1] - exonDict[exon[0]] #make the width equal to the width between the locations
         else: #if drawing only exons
             start = loc #make the start at our current location
             width = exon[1] - exon[0] - 1 #make the width our distance between pairs

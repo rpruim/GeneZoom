@@ -79,7 +79,7 @@ if not gz_options['R']:
 			return(result)
 
 		def read_csv(filename, delim=','):
-			fh = open(filename)
+			fh = open(filename,'r')
 			dialect = csv.Sniffer().sniff(fh.read(1024)) 
 			fh.seek(0)
 			if csv.Sniffer().has_header(fh.read(1024)):

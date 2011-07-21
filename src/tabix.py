@@ -147,7 +147,7 @@ class tabixReader:
 
 	def open(self):
 		try:
-			self._bgzf = open(self._bgzf_filename)
+			self._bgzf = open(self._bgzf_filename, 'rb')
 			self._tbi = multiopen(self._tbi_filename)
 			self._magic = self._tbi.read(4)
 			assert( self._magic == 'TBI\x01' )

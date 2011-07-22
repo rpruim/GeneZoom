@@ -250,13 +250,6 @@ if __name__ == "__main__":
     refFlat, traits = DataSetup(options)
     #load the vcf file containing the genotypes
     #this is placed here instead of in DataSetup due to import restrictions
-    try:
-        from tabix import *
-        v=tabixReader(options.vcf_file)
-        logging.debug('Using tabix.py')
-    except Exception as e:
-        print e
-        die("Unable to open vcf file: " + options.vcf_file)
 
     if options.batchfile:
         batch = open(options.batchfile, 'r')
@@ -266,21 +259,29 @@ if __name__ == "__main__":
     else:
         jobs = ['']
 
+    last_vcf_file = None
+    last_trait_file = None
     for job in jobs:
-        last_vcf_file = options.vcf_file
-        last_trait_file = options.trait_file
         (options, args) = OptionSetUp(job)
         if options.vcf_file != last_vcf_file:
-            v=tabixReader(options.vcf_file)
+            try:
+                from tabix import *
+                v=tabixReader(options.vcf_file)
+                logging.debug('Using tabix.py')
+            except Exception as e:
+                print e
+                die("Unable to open vcf file: " + options.vcf_file)
         if options.trait_file != last_trait_file:
             refFlat, traits = DataSetup(options)
 
         (bedRow, exonDict, options) = ProcessBed(refFlat, options)
         vstuff = v.reg2vcf(options.chrom, options.start, options.stop)
-        print len(vstuff), "markers in region", options.chrom, type(options.chrom)
+        print len(vstuff), "markers in region " + options.chrom + ":" + str(options.start) + "-" + str(options.stop)
         options.start = options.local_start
         options.stop = options.local_stop     ######## !! kludge alert !! ###########
         gp.pictograph(options, vstuff, exonDict, bedRow, traits)
+        last_vcf_file = options.vcf_file
+        last_trait_file = options.trait_file
 
     if options.interact:
         try:

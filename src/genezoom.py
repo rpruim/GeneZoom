@@ -108,7 +108,7 @@ def OptionSetUp(additional_args = ''):
         "-p", "--prefix", 
         dest="prefix", 
         default="genezoom",
-        help ="name for output files", 
+        help ="filename for output files", 
         metavar="STRING")
     outputGroup.add_option(
         "--directory",
@@ -204,7 +204,7 @@ def OptionSetUp(additional_args = ''):
     return (options, args)
 
 
-def dataSetup( options ):
+def DataSetup( options ):
     '''Sets up the data for the UCSC file for gene information and the exon base pairs.'''
     traits = gzio.read_csv(options.trait_file)
     refFlatKeys = ['geneName','name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts','exonEnds']
@@ -239,14 +239,22 @@ def ProcessBed(refFlat, options):
 
     #make an exon dictionary of the base pairs, defaulting to an exon if chosen start is in an exon
     exonDict=gp.exonbplist(bedRow.get_exons(), options.introns)
-    
+    if not exonDict.has_key(options.start):
+        options.local_start=gp.bp2exonbp(bedRow.get_exons(), options.start, options.introns)
+    else:
+        options.local_start=exonDict[options.start]
+    if not exonDict.has_key(options.stop):
+        options.local_stop=gp.bp2exonbp(bedRow.get_exons(), options.stop, options.introns)
+    else:
+        options.local_stop=exonDict[options.stop]
+
     return bedRow, exonDict, options
 
 if __name__ == "__main__":
     options, args = OptionSetUp()
-    refFlat, traits = dataSetup(options)
+    refFlat, traits = DataSetup(options)
     #load the vcf file containing the genotypes
-    #this is placed here instead of in dataSetup due to import restrictions
+    #this is placed here instead of in DataSetup due to import restrictions
     try:
         from tabix import *
         v=tabixReader(options.vcf_file)
@@ -264,9 +272,15 @@ if __name__ == "__main__":
         jobs = ['']
 
     for job in jobs:
+        last_vcf_file = options.vcf_file
+        last_trait_file = options.trait_file
         (options, args) = OptionSetUp(job)
+        if options.vcf_file != last_vcf_file:
+            v=tabixReader(options.vcf_file)
+        if options.trait_file != last_trait_file:
+            refFlat, traits = DataSetup(options)
+
         (bedRow, exonDict, options) = ProcessBed(refFlat, options)
-        PrintOptions(options)
         vstuff = v.reg2vcf(options.chrom, options.start, options.stop)
         print len(vstuff), "markers in region", options.chrom, type(options.chrom)
         gp.pictograph(options, vstuff, exonDict, bedRow, traits)

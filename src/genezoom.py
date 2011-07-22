@@ -111,8 +111,8 @@ def OptionSetUp():
         "-y", "--yscale", 
         dest="yscale", 
         default='25:25',
-        help="number of cases shown: number of controls shown", 
-        metavar="cases:controls")
+        help="number of controls shown: number of cases shown", 
+        metavar="controls:cases")
     graphGroup.add_option(
         "--introns",
         dest="introns",
@@ -159,7 +159,7 @@ def OptionSetUp():
         options.ymax=int(y.groups()[1])
     except Exception as e:
         print >> sys.stderr, e
-        print "Invalid yscale region.  Defaulting to 25 cases, 25 controls."
+        print "Invalid yscale region.  Defaulting to 25 controls, 25 cases."
         options.ymin=25
         options.ymax=25
     #evaluate the color choices
@@ -242,7 +242,7 @@ if __name__ == "__main__":
         #vcfutils requires options.chrom to be a string, whereas vcf requires options.chrom to be an int
         vstuff = v.fetch_range(int(options.chrom), options.start, options.stop)
     exonDict, bedRow, options, traits = dataSetup(options)
-    gp.histogram(options, vstuff, exonDict, bedRow, traits)
+    gp.pictograph(options, vstuff, exonDict, bedRow, traits)
     if options.interact:
         try:
             from IPython.Shell import IPShellEmbed  # enter interactive ipython

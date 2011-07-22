@@ -7,6 +7,13 @@ import bed
 import re
 import genePlot as gp
 import logging
+import shlex
+import sys
+
+def parseCommandLine(line):
+    my_splitter = shlex.shlex(line, posix=True)
+    my_splitter.whitespace_split = True 
+    return list(my_splitter)
 
 # Load program constants.
 conf_file = find_relative("conf/gz.conf")
@@ -15,7 +22,7 @@ if conf_file:
 else:
     die('Unable to find configuration file.')
 
-def OptionSetUp():
+def OptionSetUp(additional_args = ''):
     '''Sets up the option parser for the command line, returns the options chosen.'''
     #Begin option parser
     parser=OptionParser()
@@ -23,6 +30,12 @@ def OptionSetUp():
     graphGroup=OptionGroup(parser, "Graph options")
     infoGroup=OptionGroup(parser, "Genetic information options")
     outputGroup=OptionGroup(parser, "Output options")
+    parser.add_option(
+        "-b", "--batch",
+        dest="batchfile", 
+        default=None,
+        metavar="FILENAME",
+        help="file with controls for batch operation")
     parser.add_option(
         "-q", "--quiet",
         dest="verbose", 
@@ -36,7 +49,7 @@ def OptionSetUp():
         default=False,
         help="Enter interactive python session after running")
     infoGroup.add_option(
-        "-b", "--build",
+        "", "--build",
         dest="build", 
         default='hg19',
         help="hg build (UCSC database for gene data)")
@@ -138,7 +151,7 @@ def OptionSetUp():
     parser.add_option_group(infoGroup)
     parser.add_option_group(graphGroup)
     parser.add_option_group(outputGroup)
-    (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args(sys.argv[1:] + parseCommandLine(additional_args))
     
     #use regular expressions to evaluate the user's choices
     #evaluate the region choices
@@ -191,20 +204,9 @@ def dataSetup( options ):
     traits = gzio.read_csv(options.trait_file)
     refFlatKeys = ['geneName','name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts','exonEnds']
     refFlat = bed.BED(options.bed, keys=refFlatKeys)
-    bedRow=[row for row in refFlat if row['name']==options.gene ][0]
-    #make an exon dictionary of the base pairs, defaulting to an exon if chosen start is in an exon
-    exonDict=gp.exonbplist(bedRow.get_exons(), options.introns)
-    if not exonDict.has_key(options.start):
-        options.start=gp.bp2exonbp(bedRow.get_exons(), options.start, options.introns)
-    else:
-        options.start=exonDict[options.start]
-    if not exonDict.has_key(options.stop):
-        options.stop=gp.bp2exonbp(bedRow.get_exons(), options.stop, options.introns)
-    else:
-        options.stop=exonDict[options.stop]
-    return exonDict, bedRow, options, traits
+    return refFlat, traits
 
-def printOptions( options ):
+def PrintOptions( options ):
     '''Prints out the chosen options.  Can be used for debugging or user info.'''
     print "Chosen options:"
     print "  Genetic information options:"
@@ -227,19 +229,52 @@ def printOptions( options ):
     print "    Save as png? \t%s"%options.png
     print "    Save as pdf? \t%s"%options.pdf
 
+def ProcessBed(refFlat, options):
+    bedRow=[row for row in refFlat if row['name']==options.gene ][0]
+
+    #make an exon dictionary of the base pairs, defaulting to an exon if chosen start is in an exon
+    exonDict=gp.exonbplist(bedRow.get_exons(), options.introns)
+    if not exonDict.has_key(options.start):
+        options.local_start=gp.bp2exonbp(bedRow.get_exons(), options.start, options.introns)
+    else:
+        options.local_start=exonDict[options.start]
+    if not exonDict.has_key(options.stop):
+        options.local_stop=gp.bp2exonbp(bedRow.get_exons(), options.stop, options.introns)
+    else:
+        options.local_stop=exonDict[options.stop]
+
+    return bedRow, exonDict, options
+
 if __name__ == "__main__":
     options, args = OptionSetUp()
+    refFlat, traits = dataSetup(options)
     #load the vcf file containing the genotypes
     #this is placed here instead of in dataSetup due to import restrictions
     try:
         from tabix import *
         v=tabixReader(options.vcf_file)
-        vstuff = v.reg2vcf(options.chrom, options.start, options.stop)
         logging.debug('Using tabix.py')
     except Exception as e:
         print e
-    exonDict, bedRow, options, traits = dataSetup(options)
-    gp.pictograph(options, vstuff, exonDict, bedRow, traits)
+        die("Unable to open vcf file: " + options.vcf_file)
+
+    if options.batchfile:
+        batch = open(options.batchfile, 'r')
+        jobs = batch.readlines()
+        jobs = [j for j in jobs if j[0] != '#' and len(j) > 1]
+
+    else:
+        jobs = ['']
+
+    for job in jobs:
+        (options, args) = OptionSetUp(job)
+        (bedRow, exonDict, options) = ProcessBed(refFlat, options)
+        PrintOptions(options)
+        vstuff = v.reg2vcf(options.chrom, options.start, options.stop)
+        print len(vstuff), "markers in region", options.chrom, type(options.chrom)
+        options.start = options.local_start
+        options.stop = options.local_stop     ######## !! kludge alert !! ###########
+        gp.pictograph(options, vstuff, exonDict, bedRow, traits)
 
     if options.interact:
         try:

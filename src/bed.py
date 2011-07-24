@@ -36,12 +36,13 @@ class BED:
 		return [r for r in self._rows ]
 
 	def get_rows(self, name='', exact=True):
+		print 'looking for', name
 		if name == '':
 			exact=False
 		if exact:
-			return [r for r in self._rows if name == r['name'] ]
+			return [r for r in self._rows if (name == r['name']) or (name == r['geneName']) ]
 		else:
-			return [r for r in self._rows if re.search(name, r['name']) ]
+			return [r for r in self._rows if (re.search(name, r['name'])) or (re.search(name, r['geneName'])) ]
 
 class BEDrow:
 	def __init__(self, s, parent=None):

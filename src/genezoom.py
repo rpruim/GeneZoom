@@ -33,7 +33,7 @@ def OptionSetUp(additional_args = ''):
     parser.add_option(
         "-b", "--batch",
         dest="batchfile", 
-        default=None,
+#        default=None,
         metavar="FILENAME",
         help="file with controls for batch operation")
     parser.add_option(
@@ -56,7 +56,8 @@ def OptionSetUp(additional_args = ''):
     infoGroup.add_option(
         "--gene",
         dest="gene",
-        default='NM_152486',
+#        default='NM_152486',
+        metavar="GENENAME",
         help="Gene to graph")
     infoGroup.add_option(
         "--bed",
@@ -86,11 +87,18 @@ def OptionSetUp(additional_args = ''):
         "--title",
         dest="title",
         default="",
-        help="desired title for the plot")
+		metavar='STRING',
+        help="title for the plot")
+    graphGroup.add_option(
+        "-f", "--flank", 
+        dest="flank", 
+        default='0,0',
+        help="flanking amount (bp)", 
+        metavar="left[,right]")
     graphGroup.add_option(
         "-r", "--region", 
         dest="region", 
-        default='1:873000-880000',
+#        default='1:873000-880000',
         help="specify region of interest", 
         metavar="chr:start-stop")
     outputGroup.add_option(
@@ -160,16 +168,16 @@ def OptionSetUp(additional_args = ''):
     
     #use regular expressions to evaluate the user's choices
     #evaluate the region choices
-    try:
-        regionRE=re.compile(r'(.+):(\d+)-(\d+)')
-        m=regionRE.match(options.region)
-        options.chrom = (m.groups()[0])
-        options.start = int(m.groups()[1])
-        options.stop = int(m.groups()[2])
-    except Exception as e:
-        print >> sys.stderr, e
-        die( 'Invalid region specification:  ' + options.region )
-    #evaluate the scale choices
+#    try:
+#        regionRE=re.compile(r'(.+):(\d+)-(\d+)')
+#        m=regionRE.match(options.region)
+#        options.chrom = (m.groups()[0])
+#        options.start = int(m.groups()[1])
+#        options.stop = int(m.groups()[2])
+#    except Exception as e:
+#        print >> sys.stderr, e
+#        die( 'Invalid region specification:  ' + options.region )
+#    #evaluate the scale choices
     try:
         scaleRE=re.compile(r'(\d+):(\d+)')
         y=scaleRE.match(options.yscale)
@@ -201,6 +209,15 @@ def OptionSetUp(additional_args = ''):
     if ((options.shape!="circle") and (options.shape!="rect") and (options.shape!="rectangle")):
         print "Invalid shape %s chosen. Defaulting to circle."%options.shape        
         options.shape="circle"
+
+	# parse options.flank
+	if options.flank:
+		options.flank = [ int(x) for x in (options.flank).split(',') ]
+		if len(options.flank) == 1:
+			(options.flank).append(options.flank[0])
+		if len(options.flank) != 2:
+			options.flank = [ 0, 0 ]
+
     return (options, args)
 
 
@@ -234,21 +251,40 @@ def PrintOptions( options ):
     print "    Save as png? \t%s"%options.png
     print "    Save as pdf? \t%s"%options.pdf
 
-def ProcessBed(refFlat, options):
-    bedRow=[row for row in refFlat if row['name']==options.gene ][0]
+def ProcessBed(bedrow, options):
+    # bedRow=[row for row in refFlat if row['name']==options.gene ][0]
 
     #make an exon dictionary of the base pairs, defaulting to an exon if chosen start is in an exon
-    exonDict=gp.exonbplist(bedRow.get_exons(), options.introns)
+    exonDict=gp.exonbplist(bedrow.get_exons(), options.introns)
     if not exonDict.has_key(options.start):
-        options.local_start=gp.bp2exonbp(bedRow.get_exons(), options.start, options.introns)
+        options.local_start=gp.bp2exonbp(bedrow.get_exons(), options.start, options.introns)
     else:
         options.local_start=exonDict[options.start]
     if not exonDict.has_key(options.stop):
-        options.local_stop=gp.bp2exonbp(bedRow.get_exons(), options.stop, options.introns)
+        options.local_stop=gp.bp2exonbp(bedrow.get_exons(), options.stop, options.introns)
     else:
         options.local_stop=exonDict[options.stop]
 
-    return bedRow, exonDict, options
+    return bedrow, exonDict, options
+
+def DetermineRegion( options, bedrow ):
+    if options.region:
+        try:
+            regionRE=re.compile(r'(.+):(\d+)-(\d+)')
+            m=regionRE.match(options.region)
+            options.chrom = (m.groups()[0])
+            options.start = int(m.groups()[1])
+            options.stop = int(m.groups()[2])
+            return( options.chrom, options.start, options.stop )
+        except Exception as e:
+            print >> sys.stderr, e
+            die( 'Invalid region specification:  ' + str(options.region ))
+
+    else:
+        options.chrom = bedrow['chrom'] 
+        options.start = bedrow['txStart'] 
+        options.stop = bedrow['txEnd']
+        return( options.chrom, options.start, options.stop )
 
 if __name__ == "__main__":
     options, args = OptionSetUp()
@@ -267,8 +303,8 @@ if __name__ == "__main__":
     last_vcf_file = None
     last_trait_file = None
     for job in jobs:
-        (options, args) = OptionSetUp(job)
-        if options.vcf_file != last_vcf_file:
+        (job_options, job_args) = OptionSetUp(job)
+        if job_options.vcf_file != last_vcf_file:
             try:
                 from tabix import *
                 v=tabixReader(options.vcf_file)
@@ -279,12 +315,14 @@ if __name__ == "__main__":
         if options.trait_file != last_trait_file:
             refFlat, traits = DataSetup(options)
 
-        (bedRow, exonDict, options) = ProcessBed(refFlat, options)
-        vstuff = v.reg2vcf(options.chrom, options.start, options.stop)
-        print len(vstuff), "markers in region " + options.chrom + ":" + str(options.start) + "-" + str(options.stop)
-        gp.pictograph(options, vstuff, exonDict, bedRow, traits)
-        last_vcf_file = options.vcf_file
-        last_trait_file = options.trait_file
+        for bedrow in refFlat.get_rows(options.gene):
+            region = DetermineRegion( job_options, bedrow )
+            (bedrow, exonDict, options) = ProcessBed(bedrow, job_options)
+            vstuff = v.reg2vcf(job_options.chrom, int(job_options.start), int(job_options.stop))
+            print len(vstuff), "markers in region " + job_options.chrom + ":" + str(job_options.start) + "-" + str(job_options.stop)
+            gp.pictograph(job_options, vstuff, exonDict, bedrow, traits)
+        last_vcf_file = job_options.vcf_file
+        last_trait_file = job_options.trait_file
 
     if options.interact:
         try:

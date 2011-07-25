@@ -68,7 +68,7 @@ def OptionSetUp(additional_args = ''):
     infoGroup.add_option(
         "-v", "--vcf", 
         dest="vcf_file", 
-        default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
+#        default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
         help ="vcf file containing genotypes", 
         metavar="FILE")
     infoGroup.add_option(

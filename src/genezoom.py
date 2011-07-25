@@ -313,13 +313,13 @@ if __name__ == "__main__":
 		if job_options.vcf_file != last_vcf_file:
 			try:
 				from tabix import *
-				v=tabixReader(options.directory + "/" + options.vcf_file)
+				v=tabixReader(options.directory + options.vcf_file)
 				logging.debug('Using tabix.py')
 			except Exception as e:
 				print e
 				die("Unable to open vcf file: " + str(options.vcf_file))
 		if options.trait_file != last_trait_file:
-			traitfile = options.directory + "/" + options.trait_file
+			traitfile = options.directory + options.trait_file
 			refFlat, traits = DataSetup(traitfile, options.bed)
 		for bedrow in refFlat.get_rows(options.gene):
 			region = DetermineRegion( job_options, bedrow )

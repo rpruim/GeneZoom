@@ -83,6 +83,11 @@ def OptionSetUp(additional_args = ''):
 		default="T2D",
 		help="specify grouping variable", 
 		metavar="STRING")
+	infoGroup.add_option(
+		"-d", "--directory",
+		dest = "directory",
+		default = "",
+		help = "directory of data files")
 	graphGroup.add_option(
 		"--title",
 		dest="title",
@@ -118,11 +123,6 @@ def OptionSetUp(additional_args = ''):
 		default="genezoom",
 		help ="filename for output files", 
 		metavar="STRING")
-	outputGroup.add_option(
-		"--directory",
-		dest = "directory",
-		default = "results",
-		help = "output directory")
 	outputGroup.add_option(
 		"--png",
 		dest="png",
@@ -221,11 +221,11 @@ def OptionSetUp(additional_args = ''):
 	return (options, args)
 
 
-def DataSetup( options ):
+def DataSetup( traitfile, bedfile ):
 	'''Sets up the data for the UCSC file for gene information and the exon base pairs.'''
-	traits = gzio.read_csv(options.trait_file)
+	traits = gzio.read_csv(traitfile)
 	refFlatKeys = ['geneName','name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts','exonEnds']
-	refFlat = bed.BED(options.bed, keys=refFlatKeys)
+	refFlat = bed.BED(bedfile, keys=refFlatKeys)
 	return refFlat, traits
 
 def PrintOptions( options ):
@@ -235,6 +235,7 @@ def PrintOptions( options ):
 	print "	hg build:\t\t%s"%options.build
 	print "	Grouping:\t\t%s"%options.groups
 	print "	Gene:\t\t%s"%options.gene 
+	print " Directory of information files:\t%s"%options.directory
 	print "	UCSC bed:\t\t%s"%options.bed
 	print "	VCF gene file:\t%s"%options.vcf_file
 	
@@ -292,7 +293,8 @@ def DetermineRegion( options, bedrow ):
 
 if __name__ == "__main__":
 	options, args = OptionSetUp()
-	refFlat, traits = DataSetup(options)
+	traitfile = options.directory + "/" + options.trait_file
+	refFlat, traits = DataSetup(traitfile, options.bed)
 	#load the vcf file containing the genotypes
 	#this is placed here instead of in DataSetup due to import restrictions
 
@@ -311,14 +313,14 @@ if __name__ == "__main__":
 		if job_options.vcf_file != last_vcf_file:
 			try:
 				from tabix import *
-				v=tabixReader(options.vcf_file)
+				v=tabixReader(options.directory + "/" + options.vcf_file)
 				logging.debug('Using tabix.py')
 			except Exception as e:
 				print e
 				die("Unable to open vcf file: " + str(options.vcf_file))
 		if options.trait_file != last_trait_file:
-			refFlat, traits = DataSetup(options)
-
+			traitfile = options.directory + "/" + options.trait_file
+			refFlat, traits = DataSetup(traitfile, options.bed)
 		for bedrow in refFlat.get_rows(options.gene):
 			region = DetermineRegion( job_options, bedrow )
 			(bedrow, exonDict, options) = ProcessBed(bedrow, job_options, region)

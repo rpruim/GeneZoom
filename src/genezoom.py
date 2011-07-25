@@ -285,10 +285,10 @@ def DetermineRegion( options, bedrow ):
 		options.chrom = bedrow['chrom']
 		scaleRE=re.compile(r'chr(.+)')
 		chr=scaleRE.match(options.chrom)
-        options.chrom=chr.groups()[0]
-        options.start = int(bedrow['txStart'])
-        options.stop = int(bedrow['txEnd'])
-        return( options.chrom, options.start, options.stop )
+		options.chrom=chr.groups()[0]
+		options.start = int(bedrow['txStart'])
+		options.stop = int(bedrow['txEnd'])
+		return( options.chrom, options.start, options.stop )
 
 if __name__ == "__main__":
 	options, args = OptionSetUp()

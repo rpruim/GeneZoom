@@ -128,17 +128,17 @@ def patchPlot(stuff, xLoc, options):
     return PatchCollection(patches, match_original=True) #return our collection of patches
 
 
-def SetupPlot(start, end, ymin, ymax, options):
+def SetupPlot(dimensions, alleleColor, title):
     '''Set up the parameters for the graph.'''
     #set up the graph format
     fig = plt.figure(figsize=(8, 5))#set window size to width, height 
     #add axes in rectangle left position, bottom position, width, height
     ax1 = fig.add_axes([0.1, 0.3, 0.8, 0.6])
     ax2 = fig.add_axes([0.1, 0.1, 0.8, 0.2], sharex=ax1)
-    ax1.axis([start, end, ymin, ymax]) #set up axis ranges
+    ax1.axis(dimensions) #set up axis ranges
     ax2.set_ylim(-5, 5)
     #set up titles, labels, and ticks
-    ax1.set_title(options.title)
+    ax1.set_title(title)
     ax1.set_ylabel("control                          case")
     ax2.set_xlabel("Chromosome")
     ax1.grid(True)        
@@ -150,7 +150,7 @@ def SetupPlot(start, end, ymin, ymax, options):
         #add horizontal axis and a legend
     horizontalLine = Line2D([-10000000000, 10000000000], [0, 0], linewidth=1, color='black')
     ax1.add_line(horizontalLine)
-    leg1 = ax1.legend((Ellipse((0, 0), 1, 1, color=options.colorallele2), Ellipse((0, 0), 1, 1, color=options.colorallele1)), ('1/1', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=10))
+    leg1 = ax1.legend((Ellipse((0, 0), 1, 1, color=alleleColor[1]), Ellipse((0, 0), 1, 1, color=alleleColor[0])), ('1/1', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=10))
     try:
         leg1.draggable(state=True, use_blit=True)#make the legend draggable
     except:
@@ -169,22 +169,24 @@ def saveGraph(fileTitle, dirname, extension):
         i+=1
     return filename #save the figure under our created filename
     
-def tuplesDomain(options, exonDict, bedRow):
+def tuplesDomain((opStart, opStop), introns, exonDict, bedRow):
     '''Finds the required x scale based upon the base pair location of the region given by the user.'''
-    if not exonDict.has_key(options.start):
-        start=bp2exonbp(bedRow.get_exons(), options.start, options.introns)
+    if not exonDict.has_key(opStart):
+        start=bp2exonbp(bedRow.get_exons(), opStart, introns)
     else:
-        start=exonDict[options.start]
-    if not exonDict.has_key(options.stop):
-        stop=bp2exonbp(bedRow.get_exons(), options.stop, options.introns)
+        start=exonDict[opStart]
+    if not exonDict.has_key(opStop):
+        stop=bp2exonbp(bedRow.get_exons(), opStop, introns)
     else:
-        stop=exonDict[options.stop]
+        stop=exonDict[opStop]
     return start, stop
     
-def pictograph(options, vstuff, exonDict, bedRow, traits):
+def pictograph(options, vstuff, exonDict, bedRow, traits, region):
     '''Creates a plot based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
-    start, stop = tuplesDomain(options, exonDict, bedRow)
-    ax1, ax2, fig = SetupPlot(start, stop, options.ymin * -1, options.ymax, options) #initialize the graph, with proper range and choices
+    start, stop = tuplesDomain((region[1], region[2]), options.introns, exonDict, bedRow)#change the region specified to basepair values
+    dimensions = (start, stop, options.ymin * -1, options.ymax)
+    colors=(options.colorallele1, options.colorallele2)
+    ax1, ax2, fig = SetupPlot(dimensions, colors, options.title) #initialize the graph, with proper range and choices
     #for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
     for v in vstuff:
         #check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph

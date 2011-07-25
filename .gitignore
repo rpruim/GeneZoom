@@ -1,1 +1,30 @@
+# vi temporary files
+###################
 *~
+.*.swp
+# Compiled source #
+###################
+*.pyc
+*.class
+*.o
+*.so
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.out
+
+# Specific files
+testing/data/458_samples*

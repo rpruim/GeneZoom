@@ -3,7 +3,6 @@ Created on Jun 7, 2011
 
 @author: jcc7
 '''
-import vcf
 
 class CrossTable:
     def __init__(self, a, b):
@@ -56,5 +55,7 @@ if __name__ == '__main__':
     vecB=('2', '1', '0', '0', '0', '1', '2', '1', '2')
     values=CrossTable(vecA, vecB)
     for i in range(2):
+        print "\t", values.getakeys()[i], 
         for j in range(3):
-            print values.valueAt(i, j)
+            print "\t", values.valueAt(i, j), 
+        print "\n"

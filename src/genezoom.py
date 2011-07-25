@@ -315,7 +315,7 @@ if __name__ == "__main__":
 				logging.debug('Using tabix.py')
 			except Exception as e:
 				print e
-				die("Unable to open vcf file: " + options.vcf_file)
+				die("Unable to open vcf file: " + str(options.vcf_file))
 		if options.trait_file != last_trait_file:
 			refFlat, traits = DataSetup(options)
 

@@ -293,7 +293,7 @@ def DetermineRegion( options, bedrow ):
 
 if __name__ == "__main__":
 	options, args = OptionSetUp()
-	traitfile = options.directory + "/" + options.trait_file
+	traitfile = options.directory + options.trait_file
 	refFlat, traits = DataSetup(traitfile, options.bed)
 	#load the vcf file containing the genotypes
 	#this is placed here instead of in DataSetup due to import restrictions

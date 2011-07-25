@@ -56,7 +56,7 @@ def OptionSetUp(additional_args = ''):
     infoGroup.add_option(
         "--gene",
         dest="gene",
-#        default='NM_152486',
+        default='NM_152486',
         metavar="GENENAME",
         help="Gene to graph")
     infoGroup.add_option(
@@ -236,7 +236,7 @@ def PrintOptions( options ):
     print "    Grouping:\t\t%s"%options.groups
     print "    Gene:\t\t%s"%options.gene 
     print "    UCSC bed:\t\t%s"%options.bed
-    print "    VCF gene file:\t%s"%options.vcf_file
+    print "    VCF file:\t%s"%options.vcf_file
     
     print "  Graph options:"
     print "    Title: \t\t%s"%options.title
@@ -307,17 +307,20 @@ if __name__ == "__main__":
         if job_options.vcf_file != last_vcf_file:
             try:
                 from tabix import *
-                v=tabixReader(options.vcf_file)
+                v=tabixReader(job_options.vcf_file)
                 logging.debug('Using tabix.py')
             except Exception as e:
-                print e
-                die("Unable to open vcf file: " + str(options.vcf_file) )
+                logging.critical (str(e)) 
+                logging.critical("Unable to open vcf file: " + str(options.vcf_file) )
+                logging.critical("\tSkipping.")
+                continue
         if options.trait_file != last_trait_file:
-            refFlat, traits = DataSetup(options)
+            refFlat, traits = DataSetup(job_options)
 
-        for bedrow in refFlat.get_rows(options.gene):
+        for bedrow in refFlat.get_rows(job_options.gene):
             region = DetermineRegion( job_options, bedrow )
-            (bedrow, exonDict, options) = ProcessBed(bedrow, job_options)
+            PrintOptions(job_options)
+            (bedrow, exonDict, job_options) = ProcessBed(bedrow, job_options)
             vstuff = v.reg2vcf(job_options.chrom, int(job_options.start), int(job_options.stop))
             print len(vstuff), "markers in region " + job_options.chrom + ":" + str(job_options.start) + "-" + str(job_options.stop)
             gp.pictograph(job_options, vstuff, exonDict, bedrow, traits)

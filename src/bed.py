@@ -36,7 +36,7 @@ class BED:
 		return [r for r in self._rows ]
 
 	def get_rows(self, name='', exact=True):
-		print 'looking for', name
+		logging.debug( 'looking for ' +  str(name) + ' in BED data')
 		if name == '':
 			exact=False
 		if exact:

@@ -68,13 +68,13 @@ def OptionSetUp(additional_args = ''):
 	infoGroup.add_option(
 		"-v", "--vcf", 
 		dest="vcf_file", 
-#		default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
+		default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
 		help ="vcf file containing genotypes", 
 		metavar="FILE")
 	infoGroup.add_option(
 		"-t", "--traits", 
 		dest="trait_file", 
-#		default="../testing/data/458_traits.csv",
+		default="../testing/data/458_traits.csv",
 		help="trait file", 
 		metavar="FILE")
 	infoGroup.add_option(
@@ -91,7 +91,6 @@ def OptionSetUp(additional_args = ''):
 	graphGroup.add_option(
 		"--title",
 		dest="title",
-		default="",
 		metavar='STRING',
 		help="title for the plot")
 	graphGroup.add_option(
@@ -192,8 +191,10 @@ def OptionSetUp(additional_args = ''):
 		options.exoncolor1='#ff9e00'
 		options.exoncolor2='#fd0006'
 	#Check for given title for graph.  If none, default to gene.
-	if options.title=="":
+	if options.title==None:
 		options.title=options.gene
+        if options.gene==None:
+            options.title=options.region
 	#Check for desired shape.  If none, default to circle.
 	if ((options.shape!="circle") and (options.shape!="rect") and (options.shape!="rectangle")):
 		print "Invalid shape %s chosen. Defaulting to circle."%options.shape
@@ -230,7 +231,7 @@ def PrintOptions( options ):
 	
 	print "  Graph options:"
 	print "	Title: \t\t%s"%options.title
-#	print "	Region:\t\t%s: "%options.chrom+"%s-"%options.start+"%s"%options.stop
+	print "	Region:\t\t%s: "%options.chrom+"%s-"%options.start+"%s"%options.stop
 	print "	Cases/Controls: \t%s"%options.ymin+"/%s"%options.ymax
 	print "	Show Introns: \t%s"%options.introns
 	print "	Colors: \t\t%s"%options.color
@@ -276,7 +277,7 @@ def DetermineRegion( options, bedrow=None ):
 
 	else:
 		if not bedrow:
-			logging.critical( 'Unable to make plot as not region was specified and no gene was located.' )
+			logging.critical( 'Unable to make plot as no region was specified and no gene was located.' )
 			return (None, None, None)
 		options.chrom = bedrow['chrom']
 		scaleRE=re.compile(r'chr(.+)')

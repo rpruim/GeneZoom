@@ -68,25 +68,25 @@ def OptionSetUp(additional_args = ''):
 	infoGroup.add_option(
 		"-v", "--vcf", 
 		dest="vcf_file", 
-		default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
+#		default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
 		help ="vcf file containing genotypes", 
 		metavar="FILE")
 	infoGroup.add_option(
 		"-t", "--traits", 
 		dest="trait_file", 
-		default="../testing/data/458_traits.csv",
+#		default="../testing/data/458_traits.csv",
 		help="trait file", 
 		metavar="FILE")
 	infoGroup.add_option(
 		"-g", "--groups", 
 		dest="groups", 
-		default="T2D",
+#		default="T2D",
 		help="specify grouping variable", 
 		metavar="STRING")
 	infoGroup.add_option(
 		"-d", "--directory",
 		dest = "directory",
-		default = "",
+		default = "./",
 		help = "directory of data files")
 	graphGroup.add_option(
 		"--title",
@@ -230,7 +230,7 @@ def PrintOptions( options ):
 	
 	print "  Graph options:"
 	print "	Title: \t\t%s"%options.title
-	print "	Region:\t\t%s: "%options.chrom+"%s-"%options.start+"%s"%options.stop
+#	print "	Region:\t\t%s: "%options.chrom+"%s-"%options.start+"%s"%options.stop
 	print "	Cases/Controls: \t%s"%options.ymin+"/%s"%options.ymax
 	print "	Show Introns: \t%s"%options.introns
 	print "	Colors: \t\t%s"%options.color
@@ -288,8 +288,7 @@ def DetermineRegion( options, bedrow=None ):
 
 if __name__ == "__main__":
 	options, args = OptionSetUp()
-	traitfile = options.directory + options.trait_file
-	refFlat, traits = DataSetup(traitfile, options.bed)
+	#PrintOptions( options )
 	#load the vcf file containing the genotypes
 	#this is placed here instead of in DataSetup due to import restrictions
 
@@ -303,30 +302,32 @@ if __name__ == "__main__":
 
 	last_vcf_file = None
 	last_trait_file = None
+	last_traitfile = None
 	for job in jobs:
 		(job_options, job_args) = OptionSetUp(job)
+		#PrintOptions( job_options )
 		if not job_options.vcf_file == last_vcf_file:
 			try:
 				from tabix import *
-				v=tabixReader(options.directory + options.vcf_file)
+				v=tabixReader(job_options.directory + job_options.vcf_file)
 				last_vcf_file = job_options.vcf_file
 			except Exception as e:
 				print e
 				logging.critical (str(e)) 
-				logging.critical("Unable to open vcf file: " + str(options.vcf_file) )
+				logging.critical("Unable to open vcf file: " + str(job_options.vcf_file) )
 				logging.critical("\tSkipping.")
 				continue
 		print last_vcf_file
-		if options.trait_file != last_trait_file:
-			traitfile = options.directory + options.trait_file
-			refFlat, traits = DataSetup(traitfile, options.bed)
+		if job_options.trait_file != last_trait_file:
+			traitfile = job_options.directory + job_options.trait_file
+			refFlat, traits = DataSetup(traitfile, job_options.bed)
 			last_trait_file = job_options.trait_file
-		bedRows = refFlat.get_rows(options.gene)
+		bedRows = refFlat.get_rows(job_options.gene)
 		print len(bedRows)
 		if len(bedRows) < 1:
 			region = DetermineRegion( job_options )
 			logging.critical(str(region))
-			(bedrow, exonDict, options) = ProcessBed(bedRows, job_options.introns, region)
+			(bedrow, exonDict, job_options) = ProcessBed(bedRows, job_options.introns, region)
 			vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
 			print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
 			gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region)
@@ -335,7 +336,7 @@ if __name__ == "__main__":
 				print bedrow['name'], bedrow['geneName']
 				region = DetermineRegion( job_options, bedrow )
 				logging.critical(str(region))
-				(bedrow, exonDict, options) = ProcessBed(bedrow, job_options.introns, region)
+				(bedrow, exonDict, job_options) = ProcessBed(bedrow, job_options.introns, region)
 				vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
 				print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
 				gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region)

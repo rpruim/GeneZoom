@@ -56,7 +56,7 @@ def OptionSetUp(additional_args = ''):
 	infoGroup.add_option(
 		"--gene",
 		dest="gene",
-		default='NM_152486',
+		#default='NM_152486',
 		metavar="GENENAME",
 		help="Gene to graph")
 	infoGroup.add_option(
@@ -103,7 +103,7 @@ def OptionSetUp(additional_args = ''):
 	graphGroup.add_option(
 		"-r", "--region", 
 		dest="region", 
-#		default='1:873000-880000',
+		#default='1:873000-880000',
 		help="specify region of interest", 
 		metavar="chr:start-stop")
 	outputGroup.add_option(
@@ -241,19 +241,22 @@ def PrintOptions( options ):
 	print "	Save as png? \t%s"%options.png
 	print "	Save as pdf? \t%s"%options.pdf
 
-def ProcessBed(bedrow, options, region):
+def ProcessBed(bedrow, introns, region):
 	# bedRow=[row for row in refFlat if row['name']==options.gene ][0]
-
-	#make an exon dictionary of the base pairs, defaulting to an exon if chosen start is in an exon
-	exonDict=gp.exonbplist(bedrow.get_exons(), options.introns)
-	if not exonDict.has_key(region[1]):
-		options.local_start=gp.bp2exonbp(bedrow.get_exons(), region[1], options.introns)
+	'''Make an exon dictionary of the base pairs, defaulting to an exon if chosen start is in an exon.'''
+	if bedrow==[]: #if a bedrow is empty (that is, there is no gene), then create a false exonDict
+		length = region[2]-region[1]+1
+		exonDict = dict((region[1]+i,i) for i in range(0, length))
 	else:
-		options.local_start=exonDict[region[1]]
-	if not exonDict.has_key(region[2]):
-		options.local_stop=gp.bp2exonbp(bedrow.get_exons(), region[2], options.introns)
-	else:
-		options.local_stop=exonDict[region[2]]
+		exonDict=gp.exonbplist(bedrow.get_exons(), introns)
+#	if not exonDict.has_key(region[1]):
+#		options.local_start=gp.bp2exonbp(bedrow.get_exons(), region[1], options.introns)
+#	else:
+#		options.local_start=exonDict[region[1]]
+#	if not exonDict.has_key(region[2]):
+#		options.local_stop=gp.bp2exonbp(bedrow.get_exons(), region[2], options.introns)
+#	else:
+#		options.local_stop=exonDict[region[2]]
 
 	return bedrow, exonDict, options
 
@@ -323,7 +326,7 @@ if __name__ == "__main__":
 		if len(bedRows) < 1:
 			region = DetermineRegion( job_options )
 			logging.critical(str(region))
-			(bedrow, exonDict, options) = ProcessBed(bedrow, job_options, region)
+			(bedrow, exonDict, options) = ProcessBed(bedRows, job_options.introns, region)
 			vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
 			print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
 			gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region)
@@ -331,7 +334,7 @@ if __name__ == "__main__":
 			for bedrow in bedRows:
 				region = DetermineRegion( job_options, bedrow )
 				logging.critical(str(region))
-				(bedrow, exonDict, options) = ProcessBed(bedrow, job_options, region)
+				(bedrow, exonDict, options) = ProcessBed(bedrow, job_options.introns, region)
 				vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
 				print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
 				gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region)

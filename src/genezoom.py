@@ -56,7 +56,7 @@ def OptionSetUp(additional_args = ''):
 	infoGroup.add_option(
 		"--gene",
 		dest="gene",
-#		default='NM_152486',
+		default='NM_152486',
 		metavar="GENENAME",
 		help="Gene to graph")
 	infoGroup.add_option(
@@ -120,7 +120,7 @@ def OptionSetUp(additional_args = ''):
 	outputGroup.add_option(
 		"-p", "--prefix", 
 		dest="prefix", 
-		default="genezoom",
+		default="results/genezoom",
 		help ="filename for output files", 
 		metavar="STRING")
 	outputGroup.add_option(
@@ -160,23 +160,12 @@ def OptionSetUp(additional_args = ''):
 		"--color",
 		dest="color",
 		default="#0e51a7:#0acf00:#ff9e00:#fd0006",
-		help = "RGB colors for graph.  List of colors in format: #012345:#6789AB:#2468AC:#13579B, for (1/1 frequency, 1/0 frequency, exonColor, exonColor)"				  )
+		help = "RGB colors for graph.  List of colors in format: #012345:#6789AB:#2468AC:#13579B, for (1/1 frequency, 1/0 frequency, exonColor, exonColor)" )
 	parser.add_option_group(infoGroup)
 	parser.add_option_group(graphGroup)
 	parser.add_option_group(outputGroup)
 	(options, args) = parser.parse_args(sys.argv[1:] + parseCommandLine(additional_args))
 	
-	#use regular expressions to evaluate the user's choices
-	#evaluate the region choices
-#	try:
-#		regionRE=re.compile(r'(.+):(\d+)-(\d+)')
-#		m=regionRE.match(options.region)
-#		options.chrom = (m.groups()[0])
-#		options.start = int(m.groups()[1])
-#		options.stop = int(m.groups()[2])
-#	except Exception as e:
-#		print >> sys.stderr, e
-#		die( 'Invalid region specification:  ' + options.region )
 #	#evaluate the scale choices
 	try:
 		scaleRE=re.compile(r'(\d+):(\d+)')
@@ -207,7 +196,7 @@ def OptionSetUp(additional_args = ''):
 		options.title=options.gene
 	#Check for desired shape.  If none, default to circle.
 	if ((options.shape!="circle") and (options.shape!="rect") and (options.shape!="rectangle")):
-		print "Invalid shape %s chosen. Defaulting to circle."%options.shape		
+		print "Invalid shape %s chosen. Defaulting to circle."%options.shape
 		options.shape="circle"
 
 	# parse options.flank
@@ -268,7 +257,7 @@ def ProcessBed(bedrow, options, region):
 
 	return bedrow, exonDict, options
 
-def DetermineRegion( options, bedrow ):
+def DetermineRegion( options, bedrow=None ):
 	'''parse the region, returning default region if no region is given'''
 	if options.region:
 		try:
@@ -283,6 +272,9 @@ def DetermineRegion( options, bedrow ):
 			die( 'Invalid region specification:  ' + str(options.region ))
 
 	else:
+		if not bedrow:
+			logging.critical( 'Unable to make plot as not region was specified and no gene was located.' )
+			return (None, None, None)
 		options.chrom = bedrow['chrom']
 		scaleRE=re.compile(r'chr(.+)')
 		chr=scaleRE.match(options.chrom)
@@ -310,25 +302,39 @@ if __name__ == "__main__":
 	last_trait_file = None
 	for job in jobs:
 		(job_options, job_args) = OptionSetUp(job)
-		if job_options.vcf_file != last_vcf_file:
+		if not job_options.vcf_file == last_vcf_file:
 			try:
 				from tabix import *
 				v=tabixReader(options.directory + options.vcf_file)
-				logging.debug('Using tabix.py')
+				last_vcf_file = job_options.vcf_file
 			except Exception as e:
 				print e
-				die("Unable to open vcf file: " + str(options.vcf_file))
+				logging.critical (str(e)) 
+				logging.critical("Unable to open vcf file: " + str(options.vcf_file) )
+				logging.critical("\tSkipping.")
+				continue
+		print last_vcf_file
 		if options.trait_file != last_trait_file:
 			traitfile = options.directory + options.trait_file
 			refFlat, traits = DataSetup(traitfile, options.bed)
-		for bedrow in refFlat.get_rows(options.gene):
-			region = DetermineRegion( job_options, bedrow )
+			last_trait_file = job_options.trait_file
+		bedRows = refFlat.get_rows(options.gene)
+		print len(bedRows)
+		if len(bedRows) < 1:
+			region = DetermineRegion( job_options )
+			logging.critical(str(region))
 			(bedrow, exonDict, options) = ProcessBed(bedrow, job_options, region)
 			vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
 			print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
 			gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region)
-		last_vcf_file = job_options.vcf_file
-		last_trait_file = job_options.trait_file
+		else:
+			for bedrow in bedRows:
+				region = DetermineRegion( job_options, bedrow )
+				logging.critical(str(region))
+				(bedrow, exonDict, options) = ProcessBed(bedrow, job_options, region)
+				vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
+				print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
+				gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region)
 
 	if options.interact:
 		try:

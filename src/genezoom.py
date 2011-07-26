@@ -332,6 +332,7 @@ if __name__ == "__main__":
 			gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region)
 		else:
 			for bedrow in bedRows:
+				print bedrow['name'], bedrow['geneName']
 				region = DetermineRegion( job_options, bedrow )
 				logging.critical(str(region))
 				(bedrow, exonDict, options) = ProcessBed(bedrow, job_options.introns, region)

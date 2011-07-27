@@ -204,6 +204,9 @@ class tabixReader:
 	def is_vcf(self):
 		return self._vcf
 
+	def get_headers(self):
+		return self._headers
+
 	def get_meta_keys(self):
 		return [ k for k in self._metaInfo ]
 
@@ -324,6 +327,7 @@ if __name__ == "__main__":
 	print r.get_meta_keys()
 	print "\tFile format: ",r.get_meta('fileformat')[0]
 	print "\t     source: ",r.get_meta('source')[0]
+	print '\t    headers: ',r.get_headers()
 	print "\n"
 	start = 1234567
 	end = 1234567+50000

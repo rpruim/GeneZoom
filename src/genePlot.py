@@ -88,7 +88,7 @@ def multiPatch(patches, patchAmount, xLoc, patchLoc, patchWidth, patchHeight, co
 			patches.append(Rectangle((xLoc - patchWidth / 2, patchLoc - patchHeight / 2), patchWidth, patchHeight, color=colorShade))#Rectangle 
 		else: #if shape==circle
 			patches.append(Ellipse([xLoc, patchLoc], patchWidth, patchHeight, color=colorShade, linewidth=1.0))#Circle(size 2 array detailing xy, width)
-		
+			#patches.append(RegularPolygon([xLoc, patchLoc], 3, radius=0.6, orientation =0, color=colorShade))
 		if patchLoc < 0:#if we are drawing downward,
 			patchLoc = patchLoc - (patchHeight)#draw the next shape below the current shape
 		else: #otherwise
@@ -126,7 +126,7 @@ def patchPlot(stuff, xLoc, colors, shape):
 	return PatchCollection(patches, match_original=True) #return our collection of patches
 
 
-def SetupPlot(dimensions, alleleColor, title):
+def SetupPlot(dimensions, alleleColor, title, chrom):
 	'''Set up the parameters for the graph.  Receives dimensions [xmin, xmax, ymin, ymax], alleleColor [color1, color2] and title for the graph.'''
 	#set up the graph format
 	fig = plt.figure(figsize=(8, 5))#set window size to width, height 
@@ -138,7 +138,7 @@ def SetupPlot(dimensions, alleleColor, title):
 	#set up titles, labels, and ticks
 	ax1.set_title(title)
 	ax1.set_ylabel("control                       case")
-	ax2.set_xlabel("Chromosome")
+	ax2.set_xlabel("Chromosome %s"%chrom)
 	ax1.grid(True)		
 	ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: str(int((abs(x))))))#set ticks to absolute value
 	ax2.set_yticks([]) #eliminate yticks from the 2nd axis
@@ -158,12 +158,12 @@ def SetupPlot(dimensions, alleleColor, title):
 
 def saveGraph(fileTitle, dirname, extension):
 	'''Saves file under directory, first checking to see if the directory exists, then if the file already exists, creating a new directory or new name based on needs.'''
-#	if not os.path.isdir("./" + dirname + "/"): #if the directory doesn't exist, then create it
-#		os.mkdir("./" + dirname + "/")
+	if not os.path.isdir("./" + dirname + "/"): #if the directory doesn't exist, then create it
+		os.mkdir("./" + dirname + "/")
 	filename= fileTitle + extension
 	i=1
 	while os.path.isfile(filename): #if the filename already exists, then make a new name of the form filename(number)
-		filename=fileTitle + "%s"%i + extension
+		filename=fileTitle + "%.4d"%i + extension
 		i+=1
 	return filename #save the figure under our created filename
 	
@@ -184,7 +184,7 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region):
 	start, stop = tuplesDomain((region[1], region[2]), options.introns, exonDict, bedRow)#change the region specified to basepair values
 	dimensions = (start, stop, options.ymin * -1, options.ymax)
 	colors=(options.colorallele1, options.colorallele2)
-	ax1, ax2, fig = SetupPlot(dimensions, colors, options.title) #initialize the graph, with proper range and choices
+	ax1, ax2, fig = SetupPlot(dimensions, colors, options.title, region[0]) #initialize the graph, with proper range and choices
 	#for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
 	for v in vstuff:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
@@ -194,11 +194,9 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region):
 			drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, options.shape)
 			ax1.add_collection(drawings)			
 	exoncolors=(options.exoncolor1, options.exoncolor2)
-	if bedRow==[]: 
-		exonRect=drawExon(((region[1], region[2]), (region[1], region[2])), exonDict, exoncolors, options.introns)
-	else:
+	if bedRow!=[]:#as long as we're actually drawing exons
 		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) #draw the exons
-	ax2.add_collection(exonRect) #add the collections to the graph
+		ax2.add_collection(exonRect) #add the collections to the graph
 	ax2.add_line(Line2D([-10000000000, 10000000000], [0, 0], linewidth=1, color='black'))
 	if options.png: #if user has chosen to save graph as a png, save it
 		fig.savefig(saveGraph(options.prefix, "results", ".png"))

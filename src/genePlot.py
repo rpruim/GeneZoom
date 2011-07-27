@@ -86,9 +86,10 @@ def multiPatch(patches, patchAmount, xLoc, patchLoc, patchWidth, patchHeight, co
 	while i < patchAmount:
 		if (shape == "rect") or (shape == "rectangle"):
 			patches.append(Rectangle((xLoc - patchWidth / 2, patchLoc - patchHeight / 2), patchWidth, patchHeight, color=colorShade))#Rectangle 
+		elif shape=="triangle":
+			patches.append(RegularPolygon([xLoc, patchLoc], 3, radius=0.6, orientation =0, color=colorShade))
 		else: #if shape==circle
 			patches.append(Ellipse([xLoc, patchLoc], patchWidth, patchHeight, color=colorShade, linewidth=1.0))#Circle(size 2 array detailing xy, width)
-			#patches.append(RegularPolygon([xLoc, patchLoc], 3, radius=0.6, orientation =0, color=colorShade))
 		if patchLoc < 0:#if we are drawing downward,
 			patchLoc = patchLoc - (patchHeight)#draw the next shape below the current shape
 		else: #otherwise
@@ -179,7 +180,7 @@ def tuplesDomain((opStart, opStop), introns, exonDict, bedRow):
 		stop=exonDict[opStop]
 	return start, stop
 	
-def pictograph(options, vstuff, exonDict, bedRow, traits, region):
+def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 	'''Creates a plot based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
 	start, stop = tuplesDomain((region[1], region[2]), options.introns, exonDict, bedRow)#change the region specified to basepair values
 	dimensions = (start, stop, options.ymin * -1, options.ymax)
@@ -189,12 +190,14 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region):
 	for v in vstuff:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
 		if exonDict.has_key(int(v.get_pos())):
-			xTable = CrossTable.xTable(traits['T2D'], v.get_genotypes())
+			organizedList=CrossTable.cullList(vcfIDs, traits['ID'], traits['T2D'])
+			xTable = CrossTable.xTable(organizedList, v.get_genotypes())
+			if v.is_indel: options.shape=="triangle"
 			allelecolors=(options.colorallele1, options.colorallele2)
 			drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, options.shape)
 			ax1.add_collection(drawings)			
 	exoncolors=(options.exoncolor1, options.exoncolor2)
-	if bedRow!=[]:#as long as we're actually drawing exons
+	if bedRow!=[]:#as long as we're actually drawing exons (so a gene, not just a region)
 		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) #draw the exons
 		ax2.add_collection(exonRect) #add the collections to the graph
 	ax2.add_line(Line2D([-10000000000, 10000000000], [0, 0], linewidth=1, color='black'))

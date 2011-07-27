@@ -330,8 +330,9 @@ if __name__ == "__main__":
 			logging.critical(str(region))
 			(bedrow, exonDict, job_options) = ProcessBed(bedRows, job_options.introns, region)
 			vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
+			vcfIDs = v.get_headers()[9:]
 			print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
-			gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region)
+			gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region, vcfIDs)
 		else:
 			for bedrow in bedRows:
 				print bedrow['name'], bedrow['geneName']
@@ -339,8 +340,9 @@ if __name__ == "__main__":
 				logging.critical(str(region))
 				(bedrow, exonDict, job_options) = ProcessBed(bedrow, job_options.introns, region)
 				vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
+				vcfIDs = v.get_headers()[9:]
 				print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
-				gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region)
+				gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region, vcfIDs)
 
 	if options.interact:
 		try:

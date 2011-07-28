@@ -80,9 +80,14 @@ def OptionSetUp(additional_args = ''):
 	infoGroup.add_option(
 		"-g", "--groups", 
 		dest="groups", 
-#		default="T2D",
-		help="specify grouping variable", 
+		default="T2D",
+		help="specify grouping variable in trait file", 
 		metavar="STRING")
+	infoGroup.add_option(
+		"--id",
+		dest= "id",
+		default = "ID",
+		help = "specify ID variable in trait file")
 	infoGroup.add_option(
 		"-d", "--directory",
 		dest = "directory",
@@ -193,20 +198,12 @@ def OptionSetUp(additional_args = ''):
 	#Check for given title for graph.  If none, default to gene.
 	if options.title==None:
 		options.title=options.gene
-        if options.gene==None:
-            options.title=options.region
+		if options.gene==None:
+			options.title=options.region
 	#Check for desired shape.  If none, default to circle.
 	if ((options.shape!="circle") and (options.shape!="rect") and (options.shape!="rectangle")):
 		print "Invalid shape %s chosen. Defaulting to circle."%options.shape
 		options.shape="circle"
-
-	# parse options.flank
-	if options.flank:
-		options.flank = [ int(x) for x in (options.flank).split(',') ]
-		if len(options.flank) == 1:
-			(options.flank).append(options.flank[0])
-		if len(options.flank) != 2:
-			options.flank = [ 0, 0 ]
 
 	return (options, args)
 
@@ -263,6 +260,13 @@ def ProcessBed(bedrow, introns, region):
 
 def DetermineRegion( options, bedrow=None ):
 	'''parse the region, returning default region if no region is given'''
+	# parse options.flank
+	if options.flank:
+		options.flank = [ int(x) for x in (options.flank).split(',') ]
+		if len(options.flank) == 1:
+			(options.flank).append(options.flank[0])
+		if len(options.flank) != 2:
+			options.flank = [ 0, 0 ]
 	if options.region:
 		try:
 			regionRE=re.compile(r'(.+):(\d+)-(\d+)')
@@ -287,6 +291,15 @@ def DetermineRegion( options, bedrow=None ):
 		options.stop = int(bedrow['txEnd'])
 		return( options.chrom, options.start, options.stop )
 
+def RunJob(job_options, bedRows, v, traits, region):
+	'''Load and run job'''
+	logging.critical(str(region))
+	(bedrow, exonDict, job_options) = ProcessBed(bedRows, job_options.introns, region)
+	vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
+	vcfIDs = v.get_headers()[9:]
+	print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
+	gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region, vcfIDs)
+######################################################################################	
 if __name__ == "__main__":
 	options, args = OptionSetUp()
 	#PrintOptions( options )
@@ -327,22 +340,12 @@ if __name__ == "__main__":
 		print len(bedRows)
 		if len(bedRows) < 1:
 			region = DetermineRegion( job_options )
-			logging.critical(str(region))
-			(bedrow, exonDict, job_options) = ProcessBed(bedRows, job_options.introns, region)
-			vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
-			vcfIDs = v.get_headers()[9:]
-			print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
-			gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region, vcfIDs)
+			RunJob(job_options, bedRows, v, traits, region)
 		else:
 			for bedrow in bedRows:
 				print bedrow['name'], bedrow['geneName']
 				region = DetermineRegion( job_options, bedrow )
-				logging.critical(str(region))
-				(bedrow, exonDict, job_options) = ProcessBed(bedrow, job_options.introns, region)
-				vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
-				vcfIDs = v.get_headers()[9:]
-				print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
-				gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region, vcfIDs)
+				RunJob(job_options, bedrow, v, traits, region)
 	if options.interact:
 		try:
 			from IPython.Shell import IPShellEmbed  # enter interactive ipython

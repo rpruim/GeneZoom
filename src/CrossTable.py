@@ -12,14 +12,14 @@ Also contains methods to ensure that both lists are the same size before making 
 
 def checkKey(dict, element):
     '''Checks to see if an element is in the dictionary, if it is returns the element, otherwise returns None'''
-    try:
+    if dict.has_key(element):
         return dict[element]
-    except KeyError:
-        return None
+    return None
+
 
 def cullList(list1, list2, traits):
-    '''Receives two lists and a trait list, returning a sorted & culled version of a list the same length as first list received.
-    In other words, it expands and sorts list1, enabling a cross table to be made with a list of elements corresponding to list2'''
+    '''Receives two lists and a trait list, returning a sorted & culled version of list1 the same length as first list received.
+    In other words, it culls/expands and sorts list1, enabling a cross table to be made with a list of elements corresponding to list2'''
     d=dict(zip(list2, traits))
     culledList=[checkKey(d, s) for s in list1]
     return culledList

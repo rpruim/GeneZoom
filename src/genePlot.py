@@ -74,27 +74,24 @@ def drawExon(exonTupleList, exonDict, exoncolors, introns):
 		else: col = exoncolors[1] #if even, use exoncolor2
 			
 		patches.append(Rectangle((start, -1), width, 2, color=col)) #draw the exon
-		loc = loc + width + 1 #move the current location
+		loc += width + 1 #move the current location
 		exonColor += 1
 	return PatchCollection(patches, match_original=True)
 
 
-def multiPatch(patches, patchAmount, xLoc, patchLoc, patchWidth, patchHeight, colorShade, shape):
-	'''Draw stacked shapes as needed.'''
-	i = 0
+def multiPatch(patches, patchAmount, xLoc, patchLoc, colorShade, shape):
+	'''Draw stacked shapes as needed (rectangle or circle based on user-specified option, triangle if location is an indel).'''
+	if patchLoc <0: direction=-1
+	else: direction=1
 	#as long as there are patches left to draw, keep drawing them
-	while i < patchAmount:
+	for _ in range(patchAmount):
 		if (shape == "rect") or (shape == "rectangle"):
-			patches.append(Rectangle((xLoc - patchWidth / 2, patchLoc - patchHeight / 2), patchWidth, patchHeight, color=colorShade))#Rectangle 
+			patches.append(Rectangle((xLoc - 0.2, patchLoc - 0.5), 0.4, 1, color=colorShade))#Rectangle 
 		elif shape=="triangle":
-			patches.append(RegularPolygon([xLoc, patchLoc], 3, radius=0.6, orientation =0, color=colorShade))
+			patches.append(RegularPolygon([xLoc, patchLoc], 3, radius=0.67, orientation =180, color=colorShade))
 		else: #if shape==circle
-			patches.append(Ellipse([xLoc, patchLoc], patchWidth, patchHeight, color=colorShade, linewidth=1.0))#Circle(size 2 array detailing xy, width)
-		if patchLoc < 0:#if we are drawing downward,
-			patchLoc = patchLoc - (patchHeight)#draw the next shape below the current shape
-		else: #otherwise
-			patchLoc = patchLoc + (patchHeight) #draw the next shape above the current shape
-		i += 1#advance the patch counter
+			patches.append(Ellipse([xLoc, patchLoc], 0.4, 1, color=colorShade, linewidth=1.0))#Circle(size 2 array detailing xy, width)
+		patchLoc += direction#location for the next patch
 	return patchLoc #return the location of the current group of patches, so we know where to draw the next group
 
 
@@ -102,13 +99,11 @@ def patchPlot(stuff, xLoc, colors, shape):
 	'''Create a graph of tabulation, receiving a crosstable and an xLoc.'''
 	#initialization of our patches, with a blank circle to avoid errors of empty list
 	patches = [Circle([xLoc, 0], 1, color='white', alpha=0)] 
-	patchWidth = 0.4
-	patchHeight = 1.0
 	for ccEntry in stuff.keys():
 		if ccEntry == 'control': #if we are drawing controls
-			patchLoc = -patchHeight / 2 #draw them in a downward direction
+			patchLoc = -0.5 #draw them in a downward direction
 		else: #otherwise
-			patchLoc = patchHeight / 2 #draw them in an upward direction
+			patchLoc = 0.5 #draw them in an upward direction
 		oneCount = 0 #initialize our counts (required to avoid errors if our table does not have this data)
 		twoCount = 0
 		#get our counts from our crosstable
@@ -118,18 +113,13 @@ def patchPlot(stuff, xLoc, colors, shape):
 			oneCount = oneCount + stuff[ccEntry]['0/1']
 		if stuff[ccEntry].has_key('1/1'):
 			twoCount = stuff[ccEntry]['1/1']
-		#if there are 1/1 alleles to draw, then call multiPatch to draw them
-		if twoCount != 0:
-			patchLoc = multiPatch(patches, twoCount, xLoc, patchLoc, patchWidth, patchHeight, colors[1], shape)
-		#if there are 0/1 alleles to draw, then call multiPatch to draw them
-		if oneCount != 0:
-			patchLoc = multiPatch(patches, oneCount, xLoc, patchLoc, patchWidth, patchHeight, colors[0], shape)
+		patchLoc = multiPatch(patches, twoCount, xLoc, patchLoc, colors[1], shape)#draw 1/1 alleles
+		patchLoc = multiPatch(patches, oneCount, xLoc, patchLoc, colors[0], shape)#draw 0/1 alleles
 	return PatchCollection(patches, match_original=True) #return our collection of patches
 
 
 def SetupPlot(dimensions, alleleColor, title, chrom):
 	'''Set up the parameters for the graph.  Receives dimensions [xmin, xmax, ymin, ymax], alleleColor [color1, color2], title for the graph, and chromosome number.'''
-	#set up the graph format
 	fig = plt.figure(figsize=(8, 5))#set window size to width, height 
 	#add axes in rectangle left position, bottom position, width, height
 	ax1 = fig.add_axes([0.1, 0.3, 0.8, 0.6])
@@ -144,10 +134,8 @@ def SetupPlot(dimensions, alleleColor, title, chrom):
 	ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: str(int((abs(x))))))#set ticks to absolute value
 	ax2.set_yticks([]) #eliminate yticks from the 2nd axis
 	for label in ax1.xaxis.get_ticklabels():
-		# label is a Text instance
 		label.set_fontsize(0)#eliminate the labels from our top plot without eliminating them from the bottom
-		#add horizontal axis and a legend
-	horizontalLine = Line2D([-10000000000, 10000000000], [0, 0], linewidth=1, color='black')#draw x-axis
+	horizontalLine = Line2D([-10000000000, 10000000000], [0, 0], linewidth=1, color='black')#draw horizontal x-axis
 	ax1.add_line(horizontalLine)
 	leg1 = ax1.legend((Ellipse((0, 0), 1, 1, color=alleleColor[1]), Ellipse((0, 0), 1, 1, color=alleleColor[0])), ('1/1', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=10))
 	try:
@@ -191,7 +179,7 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 	for v in vstuff:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
 		if exonDict.has_key(int(v.get_pos())):
-			organizedList=CrossTable.cullList(vcfIDs, traits['ID'], traits['T2D'])#organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
+			organizedList=CrossTable.cullList(vcfIDs, traits[options.id], traits[options.groups])#organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
 			xTable = CrossTable.xTable(organizedList, v.get_genotypes())
 			if v.is_indel():  #if this gene is an indel, change shape to triangles
 				drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, "triangle")

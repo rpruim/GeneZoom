@@ -128,7 +128,7 @@ def patchPlot(stuff, xLoc, colors, shape):
 
 
 def SetupPlot(dimensions, alleleColor, title, chrom):
-	'''Set up the parameters for the graph.  Receives dimensions [xmin, xmax, ymin, ymax], alleleColor [color1, color2] and title for the graph.'''
+	'''Set up the parameters for the graph.  Receives dimensions [xmin, xmax, ymin, ymax], alleleColor [color1, color2], title for the graph, and chromosome number.'''
 	#set up the graph format
 	fig = plt.figure(figsize=(8, 5))#set window size to width, height 
 	#add axes in rectangle left position, bottom position, width, height
@@ -163,7 +163,7 @@ def saveGraph(fileTitle, dirname, extension):
 		os.mkdir("./" + dirname + "/")
 	filename= fileTitle + extension
 	i=1
-	while os.path.isfile(filename): #if the filename already exists, then make a new name of the form filename(number)
+	while os.path.isfile(filename): #if the filename already exists, then make a new name of the form filenamenumber, where the number has 4 digits
 		filename=fileTitle + "%.4d"%i + extension
 		i+=1
 	return filename #save the figure under our created filename
@@ -184,22 +184,23 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 	'''Creates a plot based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
 	start, stop = tuplesDomain((region[1], region[2]), options.introns, exonDict, bedRow)#change the region specified to basepair values
 	dimensions = (start, stop, options.ymin * -1, options.ymax)
-	colors=(options.colorallele1, options.colorallele2)
-	ax1, ax2, fig = SetupPlot(dimensions, colors, options.title, region[0]) #initialize the graph, with proper range and choices
+	allelecolors=(options.colorallele1, options.colorallele2)
+	exoncolors=(options.exoncolor1, options.exoncolor2)	
+	ax1, ax2, fig = SetupPlot(dimensions, allelecolors, options.title, region[0]) #initialize the graph, with proper range and choices
 	#for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
 	for v in vstuff:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
 		if exonDict.has_key(int(v.get_pos())):
-			organizedList=CrossTable.cullList(vcfIDs, traits['ID'], traits['T2D'])
+			organizedList=CrossTable.cullList(vcfIDs, traits['ID'], traits['T2D'])#organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
 			xTable = CrossTable.xTable(organizedList, v.get_genotypes())
-			if v.is_indel: options.shape=="triangle"
-			allelecolors=(options.colorallele1, options.colorallele2)
-			drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, options.shape)
+			if v.is_indel():  #if this gene is an indel, change shape to triangles
+				drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, "triangle")
+			else:
+				drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, options.shape)
 			ax1.add_collection(drawings)			
-	exoncolors=(options.exoncolor1, options.exoncolor2)
 	if bedRow!=[]:#as long as we're actually drawing exons (so a gene, not just a region)
-		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) #draw the exons
-		ax2.add_collection(exonRect) #add the collections to the graph
+		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) #draw the exons, adding them to the plot
+		ax2.add_collection(exonRect)
 	ax2.add_line(Line2D([-10000000000, 10000000000], [0, 0], linewidth=1, color='black'))
 	if options.png: #if user has chosen to save graph as a png, save it
 		fig.savefig(saveGraph(options.prefix, "results", ".png"))
@@ -207,6 +208,7 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 		fig.savefig(saveGraph(options.prefix, "results", ".pdf"))
 	if options.graph: #if user has chosen to show the graph, then show it
 		plt.show()
+
 ############################################################
 if __name__ == "__main__":
 	tupleList=((3, 6), (10, 14), (16, 19))

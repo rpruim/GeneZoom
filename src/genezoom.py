@@ -343,7 +343,6 @@ if __name__ == "__main__":
 				vcfIDs = v.get_headers()[9:]
 				print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
 				gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region, vcfIDs)
-
 	if options.interact:
 		try:
 			from IPython.Shell import IPShellEmbed  # enter interactive ipython

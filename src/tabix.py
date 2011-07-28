@@ -319,8 +319,9 @@ class tabixReader:
 		return [ m for m in result if start <= m.get_pos() < end and m.get_chrom() == chrom ]
 
 if __name__ == "__main__":
-	filename = '../testing/data/hapmap_3.3.b37.vcf.gz'
+	#filename = '../testing/data/hapmap_3.3.b37.vcf.gz'
 	filename = '../testing/data/458small.vcf.gz'
+	#filename = '../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1'
 	print 'loading data from ', filename, '...'
 	r = tabixReader(filename)
 	print "\nMeta Info available: ",
@@ -338,7 +339,11 @@ if __name__ == "__main__":
 	print "\n"
 	print "\t     filter: ", tally( [ ','.join(m.get_filter()) for m in v ] ) 
 	print "\n"
-	m = v[0]
+	print "Ref allele\tAlt allele\tis_indel"
+	for i in range(10):
+		m = v[i]
+		print "    ", m.get_refAllele(), "\t\t    ", m.get_altAllele()[0], "\t\t", m.is_indel()
+	m=v[0]
 	print 'Info for first marker:'
 	print '\t    name: ', m.get_name()
 	print '\t   chrom: ', m.get_chrom()
@@ -346,6 +351,7 @@ if __name__ == "__main__":
 	print '\t   locus: ', m.get_locus()
 	print '\t     ref: ', m.get_refAllele()
 	print '\t     alt: ', m.get_altAllele()
+	print '\t   indel: ', m.is_indel()
 	print '\t  filter: ', m.get_filter()
 	print '\t    info: ', m.get_info()
 	print '\t    qual: ', m.get_qual()

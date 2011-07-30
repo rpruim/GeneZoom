@@ -176,9 +176,11 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 	exoncolors=(options.exoncolor1, options.exoncolor2)	
 	ax1, ax2, fig = SetupPlot(dimensions, allelecolors, options.title, region[0]) #initialize the graph, with proper range and choices
 	#for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
+	unfiltered = 0
 	for v in vstuff:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
-		if exonDict.has_key(int(v.get_pos())):
+		if (exonDict.has_key(int(v.get_pos())) and v.checkFilter(options.filter)):
+			unfiltered+=1
 			organizedList=CrossTable.cullList(vcfIDs, traits[options.id], traits[options.groups])#organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
 			xTable = CrossTable.xTable(organizedList, v.get_genotypes())
 			if v.is_indel():  #if this gene is an indel, change shape to triangles
@@ -186,6 +188,7 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 			else:
 				drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, options.shape)
 			ax1.add_collection(drawings)			
+	print "%s markers plotted after filtering."%unfiltered
 	if bedRow!=[]:#as long as we're actually drawing exons (so a gene, not just a region)
 		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) #draw the exons, adding them to the plot
 		ax2.add_collection(exonRect)

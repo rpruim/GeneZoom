@@ -60,6 +60,11 @@ def OptionSetUp(additional_args = ''):
 		metavar="GENENAME",
 		help="Gene to graph")
 	infoGroup.add_option(
+		"-d", "--directory",
+		dest = "directory",
+		default = "./",
+		help = "directory of data files")
+	infoGroup.add_option(
 		"--bed",
 		dest="bed", 
 		default='../testing/data/refFlat.txt.gz.1',
@@ -89,10 +94,10 @@ def OptionSetUp(additional_args = ''):
 		default = "ID",
 		help = "specify ID variable in trait file")
 	infoGroup.add_option(
-		"-d", "--directory",
-		dest = "directory",
-		default = "./",
-		help = "directory of data files")
+		"--filter",
+		dest = "filter",
+		default = None,
+		help = "Specify included quality filter")
 	graphGroup.add_option(
 		"--title",
 		dest="title",

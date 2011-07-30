@@ -328,34 +328,36 @@ if __name__ == "__main__":
 	print r.get_meta_keys()
 	print "\tFile format: ",r.get_meta('fileformat')[0]
 	print "\t     source: ",r.get_meta('source')[0]
-	print '\t    headers: ',r.get_headers()
+#	print '\t    headers: ',r.get_headers()
 	print "\n"
 	start = 1234567
 	end = 1234567+50000
 	chrom = '1'
 	v = r.reg2vcf(chrom, start, end)
-	#v = [ a for a in v1 if start <= a.get_pos() < end ]
+	#v = [ a for a in v1 if start <= a.get_pos() < end ] 
 	print len(v), ' markers found in requested region (', chrom, ':', start, '-', end, ')'
 	print "\n"
 	print "\t     filter: ", tally( [ ','.join(m.get_filter()) for m in v ] ) 
 	print "\n"
-	print "Ref allele\tAlt allele\tis_indel"
+#	print "Ref allele\tAlt allele\tis_indel"
+	print "Quality\t\t\tFilter"
 	for i in range(10):
 		m = v[i]
-		print "    ", m.get_refAllele(), "\t\t    ", m.get_altAllele()[0], "\t\t", m.is_indel()
-	m=v[0]
-	print 'Info for first marker:'
-	print '\t    name: ', m.get_name()
-	print '\t   chrom: ', m.get_chrom()
-	print '\t     pos: ', m.get_pos()
-	print '\t   locus: ', m.get_locus()
-	print '\t     ref: ', m.get_refAllele()
-	print '\t     alt: ', m.get_altAllele()
-	print '\t   indel: ', m.is_indel()
-	print '\t  filter: ', m.get_filter()
-	print '\t    info: ', m.get_info()
-	print '\t    qual: ', m.get_qual()
-	print '\t  format: ', m.get_format()
-	print '\tGT tally: ', m.genotypeTally()
-	print '\tGT tally: ', tally(m.get_genotypes())
+		#print "    ", m.get_refAllele(), "\t\t    ", m.get_altAllele()[0], "\t\t", m.is_indel()
+		print m.get_qual(),"\t   ",m.get_filter()
+#	m=v[0]
+#	print 'Info for first marker:'
+#	print '\t    name: ', m.get_name()
+#	print '\t   chrom: ', m.get_chrom()
+#	print '\t     pos: ', m.get_pos()
+#	print '\t   locus: ', m.get_locus()
+#	print '\t     ref: ', m.get_refAllele()
+#	print '\t     alt: ', m.get_altAllele()
+#	print '\t   indel: ', m.is_indel()
+#	print '\t  filter: ', m.get_filter()
+#	print '\t    info: ', m.get_info()
+#	print '\t    qual: ', m.get_qual()
+#	print '\t  format: ', m.get_format()
+#	print '\tGT tally: ', m.genotypeTally()
+#	print '\tGT tally: ', tally(m.get_genotypes())
 

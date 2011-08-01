@@ -97,10 +97,11 @@ class VCFrow:
 		return string.join(self._items, "\t")
 
 	def checkFilter(self, userFilter):
-		filtered = False
 		for f in self.get_filter():
 			if f=="PASS":
 				return True
-			if f == userFilter:
-				return True
-		return filtered
+			if userFilter:
+				for uf in userFilter:
+					if uf == f:
+						return True
+		return False

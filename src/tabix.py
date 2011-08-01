@@ -341,7 +341,7 @@ if __name__ == "__main__":
 	print "\n"
 #	print "Ref allele\tAlt allele\tis_indel"
 	print "Quality\t\t\tFilter"
-	for i in range(10):
+	for i in range(100):
 		m = v[i]
 		#print "    ", m.get_refAllele(), "\t\t    ", m.get_altAllele()[0], "\t\t", m.is_indel()
 		print m.get_qual(),"\t   ",m.get_filter()

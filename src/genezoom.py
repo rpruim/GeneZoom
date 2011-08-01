@@ -209,7 +209,9 @@ def OptionSetUp(additional_args = ''):
 	if ((options.shape!="circle") and (options.shape!="rect") and (options.shape!="rectangle")):
 		print "Invalid shape %s chosen. Defaulting to circle."%options.shape
 		options.shape="circle"
-
+	#Check for filters
+	if options.filter:
+		options.filter = [ x for x in (options.filter).split(',') ]
 	return (options, args)
 
 

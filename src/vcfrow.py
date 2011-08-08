@@ -100,8 +100,10 @@ class VCFrow:
 		for f in self.get_filter():
 			if f=="PASS":
 				return True
-			if userFilter:
+			elif userFilter!=None:
 				for uf in userFilter:
 					if uf == f:
-						return True
-		return False
+						return False
+			else:
+				return False
+		return True

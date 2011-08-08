@@ -211,7 +211,7 @@ def OptionSetUp(additional_args = ''):
 		options.shape="circle"
 	#Check for filters
 	if options.filter:
-		options.filter = [ x for x in (options.filter).split(',') ]
+		options.filter = [f.strip() for f in (options.filter).split(',')]
 	return (options, args)
 
 
@@ -232,6 +232,7 @@ def PrintOptions( options ):
 	print " Directory of information files:\t%s"%options.directory
 	print "	UCSC bed:\t\t%s"%options.bed
 	print "	VCF gene file:\t%s"%options.vcf_file
+	print " Filtering options: %s"%options.filter
 	
 	print "  Graph options:"
 	print "	Title: \t\t%s"%options.title
@@ -278,7 +279,7 @@ def DetermineRegion( options, bedrow=None ):
 		try:
 			regionRE=re.compile(r'(.+):(\d+)-(\d+)')
 			m=regionRE.match(options.region)
-			options.chrom = (m.groups()[0])
+			options.chrom = ((m.groups()[0]).lstrip('chr'))
 			options.start = int(m.groups()[1])
 			options.stop = int(m.groups()[2])
 			return( options.chrom, options.start, options.stop )
@@ -292,8 +293,8 @@ def DetermineRegion( options, bedrow=None ):
 			return (None, None, None)
 		options.chrom = bedrow['chrom']
 		scaleRE=re.compile(r'chr(.+)')
-		chr=scaleRE.match(options.chrom)
-		options.chrom=chr.groups()[0]
+		reg=scaleRE.match(options.chrom)
+		options.chrom=reg.groups()[0]
 		options.start = int(bedrow['txStart'])
 		options.stop = int(bedrow['txEnd'])
 		return( options.chrom, options.start, options.stop )

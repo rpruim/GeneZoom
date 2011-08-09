@@ -175,43 +175,6 @@ def OptionSetUp(additional_args = ''):
 	parser.add_option_group(outputGroup)
 	(options, args) = parser.parse_args(sys.argv[1:] + parseCommandLine(additional_args))
 	
-#	#evaluate the scale choices
-	try:
-		scaleRE=re.compile(r'(\d+):(\d+)')
-		y=scaleRE.match(options.yscale)
-		options.ymin=int(y.groups()[0])
-		options.ymax=int(y.groups()[1])
-	except Exception as e:
-		print >> sys.stderr, e
-		print "Invalid yscale region.  Defaulting to 25 controls, 25 cases."
-		options.ymin=25
-		options.ymax=25
-	#evaluate the color choices
-	try:
-		splitColor=re.split('#([A-Fa-f0-9]{6})', options.color)
-		options.colorallele2='#'+splitColor[1]
-		options.colorallele1='#'+splitColor[3]
-		options.exoncolor1='#'+splitColor[5]
-		options.exoncolor2='#'+splitColor[7]
-	except Exception as e:
-		print >> sys.stderr, e
-		print "Invalid color scheme.  Defaulting to original colors."
-		options.colorallele2='#0e51a7'
-		options.colorallele1='#0acf00'
-		options.exoncolor1='#ff9e00'
-		options.exoncolor2='#fd0006'
-	#Check for given title for graph.  If none, default to gene.
-	if options.title==None:
-		options.title=options.gene
-		if options.gene==None:
-			options.title=options.region
-	#Check for desired shape.  If none, default to circle.
-	if ((options.shape!="circle") and (options.shape!="rect") and (options.shape!="rectangle")):
-		print "Invalid shape %s chosen. Defaulting to circle."%options.shape
-		options.shape="circle"
-	#Check for filters
-	if options.filter:
-		options.filter = [f.strip() for f in (options.filter).split(',')]
 	return (options, args)
 
 
@@ -222,13 +185,13 @@ def DataSetup( traitfile, bedfile ):
 	refFlat = bed.BED(bedfile, keys=refFlatKeys)
 	return refFlat, traits
 
-def PrintOptions( options ):
+def PrintOptions( options, region ):
 	'''Prints out the chosen options.  Can be used for debugging or user info.'''
 	print "Chosen options:"
 	print "  Genetic information options:"
 	print "	hg build:\t\t%s"%options.build
 	print "	Grouping:\t\t%s"%options.groups
-	print "	Gene:\t\t%s"%options.gene 
+	print "	Gene:\t\t\t%s"%options.gene 
 	print " Directory of information files:\t%s"%options.directory
 	print "	UCSC bed:\t\t%s"%options.bed
 	print "	VCF gene file:\t%s"%options.vcf_file
@@ -237,6 +200,9 @@ def PrintOptions( options ):
 	print "  Graph options:"
 	print "	Title: \t\t%s"%options.title
 	print "	Region:\t\t%s: "%options.chrom+"%s-"%options.start+"%s"%options.stop
+	print " Calculated Region:\t%s: %s-%s"%(region[0], region[1], region[2])
+	print " Flanks: %s"%options.flank
+	print " Calculated Flanks: %s, %s"%(options.flankList[0], options.flankList[1])
 	print "	Cases/Controls: \t%s"%options.ymin+"/%s"%options.ymax
 	print "	Show Introns: \t%s"%options.introns
 	print "	Colors: \t\t%s"%options.color
@@ -264,17 +230,17 @@ def ProcessBed(bedrow, introns, region):
 #	else:
 #		options.local_stop=exonDict[region[2]]
 
-	return bedrow, exonDict, options
+	return bedrow, exonDict
 
 def DetermineRegion( options, bedrow=None ):
 	'''parse the region, returning default region if no region is given'''
 	# parse options.flank
 	if options.flank:
-		options.flank = [ int(x) for x in (options.flank).split(',') ]
-		if len(options.flank) == 1:
-			(options.flank).append(options.flank[0])
-		if len(options.flank) != 2:
-			options.flank = [ 0, 0 ]
+		options.flankList = [ int(x) for x in (options.flank).split(',') ]
+		if len(options.flankList) == 1:
+			(options.flankList).append(options.flankList[0])
+		if len(options.flankList) != 2:
+			options.flankList = [ 0, 0 ]
 	if options.region:
 		try:
 			regionRE=re.compile(r'(.+):(\d+)-(\d+)')
@@ -292,20 +258,64 @@ def DetermineRegion( options, bedrow=None ):
 			logging.critical( 'Unable to make plot as no region was specified and no gene was located.' )
 			return (None, None, None)
 		options.chrom = bedrow['chrom']
-		scaleRE=re.compile(r'chr(.+)')
+		scaleRE=re.compile(r'(.+)')
 		reg=scaleRE.match(options.chrom)
-		options.chrom=reg.groups()[0]
+		options.chrom=reg.groups()[0].strip('chr')
 		options.start = int(bedrow['txStart'])
 		options.stop = int(bedrow['txEnd'])
-		return( options.chrom, options.start, options.stop )
-
+	if options.flank:
+		return( options.chrom, options.start-options.flankList[0], options.stop+options.flankList[1] )
+	return (options.chrom, options.start, options.stop)
+def parseChoices(options):
+	#evaluate the scale choices
+	try:
+		scaleRE=re.compile(r'(\d+):(\d+)')
+		y=scaleRE.match(options.yscale)
+		options.ymin=int(y.groups()[0])
+		options.ymax=int(y.groups()[1])
+	except Exception as e:
+		print >> sys.stderr, e
+		print "Invalid yscale region.  Defaulting to 25 controls, 25 cases."
+		options.ymin=25
+		options.ymax=25
+	#evaluate the color choices
+	try:
+		splitColor=re.split('#([A-Fa-f0-9]{6})', options.color)
+		options.colorallele2='#'+splitColor[1]
+		options.colorallele1='#'+splitColor[3]
+		options.exoncolor1='#'+splitColor[5]
+		options.exoncolor2='#'+splitColor[7]
+	except Exception as e:
+		print >> sys.stderr, e
+		print "Invalid color scheme.  Defaulting to original colors."
+		options.colorallele2='#0e51a7'
+		options.colorallele1='#0acf00'
+		options.exoncolor1='#ff9e00'
+		options.exoncolor2='#fd0006'
+	#Check for given title for graph.  If none, default to gene.
+	if options.title==None:
+		options.plotTitle=options.gene
+		if options.gene==None:
+			options.plotTitle=options.region
+	#Check for desired shape.  If none, default to circle.
+	if ((options.shape!="circle") and (options.shape!="rect") and (options.shape!="rectangle")):
+		print "Invalid shape %s chosen. Defaulting to circle."%options.shape
+		options.shape="circle"
+	#Check for  s
+	if options.filter!=None:
+		options.filterList = [f.strip() for f in (options.filter).split(',')]
+	else:
+		options.filterList = None
+	return options
+		
 def RunJob(job_options, bedRows, v, traits, region):
 	'''Load and run job'''
 	logging.critical(str(region))
-	(bedrow, exonDict, job_options) = ProcessBed(bedRows, job_options.introns, region)
+	(bedrow, exonDict) = ProcessBed(bedRows, job_options.introns, region)
 	vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
 	vcfIDs = v.get_headers()[9:]
 	print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
+	#PrintOptions(options, region)
 	gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region, vcfIDs)
 ######################################################################################	
 if __name__ == "__main__":
@@ -347,11 +357,13 @@ if __name__ == "__main__":
 		bedRows = refFlat.get_rows(job_options.gene)
 		print len(bedRows)
 		if len(bedRows) < 1:
+			job_options=parseChoices(job_options)
 			region = DetermineRegion( job_options )
 			RunJob(job_options, bedRows, v, traits, region)
 		else:
 			for bedrow in bedRows:
 				print bedrow['name'], bedrow['geneName']
+				job_options=parseChoices(job_options)
 				region = DetermineRegion( job_options, bedrow )
 				RunJob(job_options, bedrow, v, traits, region)
 	if options.interact:

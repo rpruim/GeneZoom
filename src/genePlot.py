@@ -174,9 +174,10 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 	dimensions = (start, stop, options.ymin * -1, options.ymax)
 	allelecolors=(options.colorallele1, options.colorallele2)
 	exoncolors=(options.exoncolor1, options.exoncolor2)	
-	ax1, ax2, fig = SetupPlot(dimensions, allelecolors, options.title, region[0]) #initialize the graph, with proper range and choices
+	ax1, ax2, fig = SetupPlot(dimensions, allelecolors, options.plotTitle, region[0]) #initialize the graph, with proper range and choices
+	vstuffFiltered = [v for v in vstuff if v.checkFilter(options.filterList)]
 	#for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
-	vstuffFiltered = [v for v in vstuff if v.checkFilter(options.filter)]
+
 	for v in vstuffFiltered:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
 		if (exonDict.has_key(int(v.get_pos()))):

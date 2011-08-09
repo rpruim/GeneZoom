@@ -310,7 +310,7 @@ def parseChoices(options):
 		
 def RunJob(job_options, bedRows, v, traits, region):
 	'''Load and run job'''
-	logging.critical(str(region))
+	#logging.critical(str(region))
 	(bedrow, exonDict) = ProcessBed(bedRows, job_options.introns, region)
 	vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
 	vcfIDs = v.get_headers()[9:]
@@ -355,14 +355,14 @@ if __name__ == "__main__":
 			refFlat, traits = DataSetup(traitfile, job_options.bed)
 			last_trait_file = job_options.trait_file
 		bedRows = refFlat.get_rows(job_options.gene)
-		print len(bedRows)
+		print "Gene Flavors =", len(bedRows)
 		if len(bedRows) < 1:
-			job_options=parseChoices(job_options)
+			job_options=parseChoices( job_options )
 			region = DetermineRegion( job_options )
 			RunJob(job_options, bedRows, v, traits, region)
 		else:
 			for bedrow in bedRows:
-				print bedrow['name'], bedrow['geneName']
+				print "\n", bedrow['name'], bedrow['geneName']
 				job_options=parseChoices(job_options)
 				region = DetermineRegion( job_options, bedrow )
 				RunJob(job_options, bedrow, v, traits, region)

@@ -95,12 +95,12 @@ def multiPatch(patches, patchAmount, xLoc, patchLoc, colorShade, shape):
 	return patchLoc #return the location of the current group of patches, so we know where to draw the next group
 
 
-def patchPlot(stuff, xLoc, colors, shape):
+def patchPlot(stuff, xLoc, colors, shape, keys):
 	'''Create a graph of tabulation, receiving a crosstable and an xLoc.'''
 	#initialization of our patches, with a blank circle to avoid errors of empty list
 	patches = [Circle([xLoc, 0], 1, color='white', alpha=0)] 
 	for ccEntry in stuff.keys():
-		if ccEntry == 'control': #if we are drawing controls
+		if ccEntry == keys[0]: #if we are drawing controls
 			patchLoc = -0.5 #draw them in a downward direction
 		else: #otherwise
 			patchLoc = 0.5 #draw them in an upward direction
@@ -128,7 +128,6 @@ def SetupPlot(dimensions, alleleColor, title, chrom):
 	ax2.set_ylim(-5, 5)
 	#set up titles, labels, and ticks
 	ax1.set_title(title)
-	ax1.set_ylabel("control                       case")
 	ax2.set_xlabel("Chromosome %s"%chrom)
 	ax1.grid(True)		
 	ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: str(int((abs(x))))))#set ticks to absolute value
@@ -177,17 +176,20 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 	ax1, ax2, fig = SetupPlot(dimensions, allelecolors, options.plotTitle, region[0]) #initialize the graph, with proper range and choices
 	vstuffFiltered = [v for v in vstuff if v.checkFilter(options.filterList)]
 	#for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
-
+	tableKeys = ()
 	for v in vstuffFiltered:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
 		if (exonDict.has_key(int(v.get_pos()))):
 			organizedList=CrossTable.cullList(vcfIDs, traits[options.id], traits[options.groups])#organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
 			xTable = CrossTable.xTable(organizedList, v.get_genotypes())
+			if len(tableKeys)!=2: #check for keys in dictionary, for y-axis labels
+				tableKeys = xTable.getTable().keys()
 			if v.is_indel():  #if this gene is an indel, change shape to triangles
-				drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, "triangle")
+				drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, "triangle", tableKeys)
 			else:
-				drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, options.shape)
+				drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, options.shape, tableKeys)
 			ax1.add_collection(drawings)
+	if tableKeys !=(): ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[len(tableKeys)-1]))
 	print "%s markers plotted after filtering."%len(vstuffFiltered)
 	if bedRow!=[]:#as long as we're actually drawing exons (so a gene, not just a region)
 		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) #draw the exons, adding them to the plot

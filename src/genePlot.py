@@ -176,14 +176,15 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 	ax1, ax2, fig = SetupPlot(dimensions, allelecolors, options.plotTitle, region[0]) #initialize the graph, with proper range and choices
 	vstuffFiltered = [v for v in vstuff if v.checkFilter(options.filterList)]
 	#for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
-	tableKeys = None
+	tableKeys = [] 
 	for v in vstuffFiltered:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
 		if (exonDict.has_key(int(v.get_pos()))):
 			organizedList=CrossTable.cullList(vcfIDs, traits[options.id], traits[options.groups])#organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
 			xTable = CrossTable.xTable(organizedList, v.get_genotypes())
-			if tableKeys == None:
+			if len( [ t for t in tableKeys if t != None ] ) < 2:
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
+				print tableKeys
 			if v.is_indel():  #if this gene is an indel, change shape to triangles
 				drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, "triangle", tableKeys)
 			else:

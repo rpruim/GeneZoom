@@ -118,7 +118,6 @@ def patchPlot(stuff, xLoc, colors, shape, keys):
 		if stuff[ccEntry].has_key('0/0'):
 			zerozeroCount=stuff[ccEntry]['0/0']
 		twoCount= min(oneoneCount, zerozeroCount)#choose the minimum between the 1/1 and 0/0 count
-		print "1/1 Count:%s\t0/0 Count:%s\tMinimum: %s"%(oneoneCount, zerozeroCount, twoCount)		
 		patchLoc = multiPatch(patches, twoCount, xLoc, patchLoc, colors[1], shape)#draw 1/1 alleles
 		patchLoc = multiPatch(patches, oneCount, xLoc, patchLoc, colors[0], shape)#draw 0/1 alleles
 	return PatchCollection(patches, match_original=True) #return our collection of patches

@@ -41,6 +41,7 @@ if not gz_options['R']:
 	try:
 		#assert (False == True)
 		import numpy as np
+		print "Using numpy"
 
 		def post_process_data(data):
 			result = {}

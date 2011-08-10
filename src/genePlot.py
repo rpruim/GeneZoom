@@ -183,6 +183,7 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 			organizedList=CrossTable.cullList(vcfIDs, traits[options.id], traits[options.groups])#organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
 			xTable = CrossTable.xTable(organizedList, v.get_genotypes())
 			if len( [ t for t in tableKeys if t != None ] ) < 2:
+				print xTable.getTable().keys() 
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
 				print tableKeys
 			if v.is_indel():  #if this gene is an indel, change shape to triangles

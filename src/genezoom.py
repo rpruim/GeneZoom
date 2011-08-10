@@ -46,7 +46,7 @@ def OptionSetUp(additional_args = ''):
 		"-d", "--delim",
 		dest="delim", 
 		default=','
-		help="Delimitor for text files")
+		help="Delimiter for text files")
 	parser.add_option(
 		"-i", "--interact",
 		dest="interact", 

@@ -10,18 +10,11 @@ Also contains methods to ensure that both lists are the same size before making 
 #forms a table, of a dictionary of dictionaries
 #[case/control][allele count]
 
-def checkKey(dict, element):
-    '''Checks to see if an element is in the dictionary, if it is returns the element, otherwise returns None'''
-    if dict.has_key(element):
-        return dict[element]
-    return None
-
-
 def cullList(list1, list2, traits):
     '''Receives two lists and a trait list, returning a sorted & culled version of list1 the same length as first list received.
     In other words, it culls/expands and sorts list1, enabling a cross table to be made with a list of elements corresponding to list2'''
-    d=dict(zip(list2, traits))
-    culledList=[checkKey(d, s) for s in list1]
+    d=dict(zip(list2, traits)) 
+    culledList=[d.get(s) for s in list1]
     return culledList
 
 class xTable:
@@ -65,7 +58,7 @@ if __name__ == '__main__':
 #    vecB=('1/1', '0/1', '0/0', './.', './.', '1/0', '1/1', '1/0', '1/1')
 #    values=xTable(vecA, vecB)
 #    values.printTable()
-    list1=['0','2','3','5','6']
-    list2=['1', '2', '3', '4', '5']
-    traits=['case', 'control', 'case', 'control', 'case']
+    list1=['0','2','5','6','7']
+    list2=['1', '2', '3', '4', '5', '6']
+    traits=['one', 'two', 'three', 'four', 'five', 'six']
     print cullList(list1, list2, traits)

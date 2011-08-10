@@ -302,6 +302,8 @@ def parseChoices(options):
 		options.plotTitle=options.gene
 		if options.gene==None:
 			options.plotTitle=options.region
+	else:
+		options.plotTitle=options.title
 	#Check for desired shape.  If none, default to circle.
 	if ((options.shape!="circle") and (options.shape!="rect") and (options.shape!="rectangle")):
 		print "Invalid shape %s chosen. Defaulting to circle."%options.shape

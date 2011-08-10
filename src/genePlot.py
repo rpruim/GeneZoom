@@ -186,12 +186,13 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 				print xTable.getTable().keys() 
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
 				print tableKeys
-			if v.is_indel():  #if this gene is an indel, change shape to triangles
-				drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, "triangle", tableKeys)
-			else:
-				drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, options.shape, tableKeys)
-			ax1.add_collection(drawings)
-	if tableKeys != None: ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[-1]))
+			if len(tableKeys) > 1:
+				if v.is_indel():  #if this gene is an indel, change shape to triangles
+					drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, "triangle", tableKeys)
+				else:
+					drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, options.shape, tableKeys)
+				ax1.add_collection(drawings)
+	if tableKeys != None and len(tableKeys > 1): ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[-1]))
 	print "%s markers plotted after filtering."%len(vstuffFiltered)
 	if bedRow!=[]:#as long as we're actually drawing exons (so a gene, not just a region)
 		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) #draw the exons, adding them to the plot

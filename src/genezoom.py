@@ -102,7 +102,7 @@ def OptionSetUp(additional_args = ''):
 		"--filter",
 		dest = "filter",
 		default = None,
-		help = "Specify included quality filter")
+		help = "Specify included quality filter in format filter1,filter2, etc.")
 	graphGroup.add_option(
 		"--title",
 		dest="title",

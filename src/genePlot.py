@@ -106,13 +106,19 @@ def patchPlot(stuff, xLoc, colors, shape, keys):
 			patchLoc = 0.5 #draw them in an upward direction
 		oneCount = 0 #initialize our counts (required to avoid errors if our table does not have this data)
 		twoCount = 0
+		oneoneCount = 0
+		zerozeroCount = 0
 		#get our counts from our crosstable
 		if stuff[ccEntry].has_key('1/0'):
 			oneCount = stuff[ccEntry]['1/0']
 		if stuff[ccEntry].has_key('0/1'):
 			oneCount = oneCount + stuff[ccEntry]['0/1']
 		if stuff[ccEntry].has_key('1/1'):
-			twoCount = stuff[ccEntry]['1/1']
+			oneoneCount = stuff[ccEntry]['1/1']
+		if stuff[ccEntry].has_key('0/0'):
+			zerozeroCount=stuff[ccEntry]['0/0']
+		twoCount= min(oneoneCount, zerozeroCount)#choose the minimum between the 1/1 and 0/0 count
+		print "1/1 Count:%s\t0/0 Count:%s\tMinimum: %s"%(oneoneCount, zerozeroCount, twoCount)		
 		patchLoc = multiPatch(patches, twoCount, xLoc, patchLoc, colors[1], shape)#draw 1/1 alleles
 		patchLoc = multiPatch(patches, oneCount, xLoc, patchLoc, colors[0], shape)#draw 0/1 alleles
 	return PatchCollection(patches, match_original=True) #return our collection of patches
@@ -136,7 +142,7 @@ def SetupPlot(dimensions, alleleColor, title, chrom):
 		label.set_fontsize(0)#eliminate the labels from our top plot without eliminating them from the bottom
 	horizontalLine = Line2D([-10000000000, 10000000000], [0, 0], linewidth=1, color='black')#draw horizontal x-axis
 	ax1.add_line(horizontalLine)
-	leg1 = ax1.legend((Ellipse((0, 0), 1, 1, color=alleleColor[1]), Ellipse((0, 0), 1, 1, color=alleleColor[0])), ('1/1', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=10))
+	leg1 = ax1.legend((Ellipse((0, 0), 1, 1, color=alleleColor[1]), Ellipse((0, 0), 1, 1, color=alleleColor[0])), ('min(1/1, 0/0)', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=10))
 	try:
 		leg1.draggable(state=True, use_blit=True)#make the legend draggable
 	except:
@@ -183,10 +189,8 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 		if (exonDict.has_key(int(v.get_pos()))):
 			organizedList=CrossTable.cullList(vcfIDs, traitIDs, traits[options.groups])#organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
 			xTable = CrossTable.xTable(organizedList, v.get_genotypes())
-			if len( [ t for t in tableKeys if t != None ] ) < 2:
-				print xTable.getTable().keys() 
+			if len( [ t for t in tableKeys if t != None ] ) < 2: 
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
-				print tableKeys
 			if len(tableKeys) > 1:
 				if v.is_indel():  #if this gene is an indel, change shape to triangles
 					drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, "triangle", tableKeys)

@@ -186,7 +186,6 @@ def OptionSetUp(additional_args = ''):
 def DataSetup( traitfile, bedfile ):
 	'''Sets up the data for the UCSC file for gene information and the exon base pairs.'''
 	traits = gzio.read_csv(traitfile, options.delim)
-	print traits
 	refFlatKeys = ['geneName','name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts','exonEnds']
 	refFlat = bed.BED(bedfile, keys=refFlatKeys)
 	return refFlat, traits

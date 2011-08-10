@@ -189,7 +189,6 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 			else:
 				drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, options.shape, tableKeys)
 			ax1.add_collection(drawings)
-			print xTable
 	if tableKeys !=(): ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[len(tableKeys)-1]))
 	print "%s markers plotted after filtering."%len(vstuffFiltered)
 	if bedRow!=[]:#as long as we're actually drawing exons (so a gene, not just a region)

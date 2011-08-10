@@ -10,11 +10,11 @@ Also contains methods to ensure that both lists are the same size before making 
 #forms a table, of a dictionary of dictionaries
 #[case/control][allele count]
 
-def cullList(list1, list2, traits):
-    '''Receives two lists and a trait list, returning a sorted & culled version of list1 the same length as first list received.
-    In other words, it culls/expands and sorts list1, enabling a cross table to be made with a list of elements corresponding to list2'''
-    d=dict(zip(list2, traits)) 
-    culledList=[d.get(s) for s in list1]
+def cullList(master, keys, vals):
+    '''keys and vals should be lists of the same length.  Returns a sorted and culled version of vals to match the keys in master rather than in keys
+    In other words, it culls/expands and sorts vals, enabling a cross table to be made with a list of elements corresponding to master'''
+    d=dict(zip(keys, vals)) 
+    culledList=[d.get(s) for s in master]
     return culledList
 
 class xTable:
@@ -58,7 +58,10 @@ if __name__ == '__main__':
 #    vecB=('1/1', '0/1', '0/0', './.', './.', '1/0', '1/1', '1/0', '1/1')
 #    values=xTable(vecA, vecB)
 #    values.printTable()
-    list1=['0','2','5','6','7']
-    list2=['1', '2', '3', '4', '5', '6']
-    traits=['one', 'two', 'three', 'four', 'five', 'six']
-    print cullList(list1, list2, traits)
+    master = ['1','2','3','4']
+    keys = ['1','3','5','4','7']
+    vals = ['one', 'three', 'five', 'four', 'seven']
+    vals = ['odd', 'odd', 'odd', 'even', 'odd']
+    print cullList(master, keys, vals)
+    print xTable( master, cullList(master,keys,vals) ).getTable()
+    print xTable( cullList(master,keys,vals), master ).getTable()

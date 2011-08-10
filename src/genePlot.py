@@ -123,7 +123,7 @@ def patchPlot(stuff, xLoc, colors, shape, keys):
 	return PatchCollection(patches, match_original=True) #return our collection of patches
 
 
-def SetupPlot(dimensions, alleleColor, title, chrom):
+def SetupPlot(dimensions, alleleColor, title, chrom, codons):
 	'''Set up the parameters for the graph.  Receives dimensions [xmin, xmax, ymin, ymax], alleleColor [color1, color2], title for the graph, and chromosome number.'''
 	fig = plt.figure(figsize=(8, 5))#set window size to width, height 
 	#add axes in rectangle left position, bottom position, width, height
@@ -133,9 +133,12 @@ def SetupPlot(dimensions, alleleColor, title, chrom):
 	ax2.set_ylim(-5, 5)
 	#set up titles, labels, and ticks
 	ax1.set_title(title)
-	ax2.set_xlabel("Chromosome %s"%chrom)
+	if codons: ax2.set_xlabel("Chromosome %s in codons"%chrom)
+	else: ax2.set_xlabel("Chromosome %s in nucleotides"%chrom)
 	ax1.grid(True)		
 	ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: str(int((abs(x))))))#set ticks to absolute value
+	#if we choose to graph codons, then divide all ticks by 3
+	if codons: ax2.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: round(x/3, 1)))
 	ax2.set_yticks([]) #eliminate yticks from the 2nd axis
 	for label in ax1.xaxis.get_ticklabels():
 		label.set_fontsize(0)#eliminate the labels from our top plot without eliminating them from the bottom
@@ -178,7 +181,7 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 	dimensions = (start, stop, options.ymin * -1, options.ymax)
 	allelecolors=(options.colorallele1, options.colorallele2)
 	exoncolors=(options.exoncolor1, options.exoncolor2)	
-	ax1, ax2, fig = SetupPlot(dimensions, allelecolors, options.plotTitle, region[0]) #initialize the graph, with proper range and choices
+	ax1, ax2, fig = SetupPlot(dimensions, allelecolors, options.plotTitle, region[0], options.codons) #initialize the graph, with proper range and choices
 	vstuffFiltered = [v for v in vstuff if v.checkFilter(options.filterList)]
 	#for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
 	tableKeys = [] 

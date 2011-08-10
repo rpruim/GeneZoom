@@ -165,6 +165,17 @@ def OptionSetUp(additional_args = ''):
 		action="store_false",
 		help="Don't show the introns in the graph (default)")
 	graphGroup.add_option(
+		"--codons",
+		dest="codons",
+		action="store_true",
+		help="Graph data as codons.")
+	graphGroup.add_option(
+		"--nocodons",
+		dest="codons",
+		default=False,
+		action="store_false",
+		help="Graph data as nucleotides (default)")
+	graphGroup.add_option(
 		"--shape",
 		dest="shape",
 		default="circle",
@@ -210,6 +221,7 @@ def PrintOptions( options, region ):
 	print " Calculated Flanks: %s, %s"%(options.flankList[0], options.flankList[1])
 	print "	Cases/Controls: \t%s"%options.ymin+"/%s"%options.ymax
 	print "	Show Introns: \t%s"%options.introns
+	print " Codons:\t%s"%options.codons
 	print "	Colors: \t\t%s"%options.color
 	
 	print "  Output options:"

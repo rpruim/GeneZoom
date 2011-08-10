@@ -181,7 +181,7 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 	for v in vstuffFiltered:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
 		if (exonDict.has_key(int(v.get_pos()))):
-			organizedList=CrossTable.cullList(vcfIDs, traitID, traits[options.groups])#organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
+			organizedList=CrossTable.cullList(vcfIDs, traitIDs, traits[options.groups])#organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
 			xTable = CrossTable.xTable(organizedList, v.get_genotypes())
 			if len( [ t for t in tableKeys if t != None ] ) < 2:
 				print xTable.getTable().keys() 

@@ -43,6 +43,11 @@ def OptionSetUp(additional_args = ''):
 		default=True,
 		help="don't print status messages to stdout")
 	parser.add_option(
+		"-d", "--delim",
+		dest="delim", 
+		default=','
+		help="Delimitor for text files")
+	parser.add_option(
 		"-i", "--interact",
 		dest="interact", 
 		action="store_true", 
@@ -180,7 +185,7 @@ def OptionSetUp(additional_args = ''):
 
 def DataSetup( traitfile, bedfile ):
 	'''Sets up the data for the UCSC file for gene information and the exon base pairs.'''
-	traits = gzio.read_csv(traitfile)
+	traits = gzio.read_csv(traitfile, options.delim)
 	refFlatKeys = ['geneName','name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts','exonEnds']
 	refFlat = bed.BED(bedfile, keys=refFlatKeys)
 	return refFlat, traits

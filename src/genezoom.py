@@ -65,7 +65,7 @@ def OptionSetUp(additional_args = ''):
 		metavar="GENENAME",
 		help="Gene to graph")
 	infoGroup.add_option(
-		"-d", "--directory",
+		"-w", "--directory",
 		dest = "directory",
 		default = "./",
 		help = "directory of data files")

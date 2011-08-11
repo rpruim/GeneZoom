@@ -205,10 +205,14 @@ def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
 		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) #draw the exons, adding them to the plot
 		ax2.add_collection(exonRect)
 	ax2.add_line(Line2D([-10000000000, 10000000000], [0, 0], linewidth=1, color='black'))
-	if options.png: #if user has chosen to save graph as a png, save it
-		fig.savefig(graphName(options.prefix, "results", ".png"))
+	if options.png:
+		saveFile =  graphName(options.prefix, "results", ".png")#if user has chosen to save graph as a png, save it
+		fig.savefig(saveFile)
+		print "Saved as %s\n"%saveFile
 	if options.pdf: #if user has chosen to save graph as a pdf, save it
-		fig.savefig(graphName(options.prefix, "results", ".pdf"))
+		saveFile = graphName(options.prefix, "results", ".pdf")
+		fig.savefig(saveFile)
+		print "Saved as %s\n"%saveFile
 	if options.graph: #if user has chosen to show the graph, then show it
 		plt.show()
 

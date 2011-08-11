@@ -72,25 +72,25 @@ def OptionSetUp(additional_args = ''):
 	infoGroup.add_option(
 		"--bed",
 		dest="bed", 
-		default='../testing/data/refFlat.txt.gz.1',
+		#default='../testing/data/refFlat.txt.gz.1',
 		metavar="refFlat|knownGene|filename",
 		help="UCSC table or file to use for gene information")
 	infoGroup.add_option(
 		"-v", "--vcf", 
 		dest="vcf_file", 
-		default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
+		#default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
 		help ="vcf file containing genotypes", 
 		metavar="FILE")
 	infoGroup.add_option(
 		"-t", "--traits", 
 		dest="trait_file", 
-		default="../testing/data/458_traits.csv",
+		#default="../testing/data/458_traits.csv",
 		help="trait file", 
 		metavar="FILE")
 	infoGroup.add_option(
 		"-g", "--groups", 
 		dest="groups", 
-		default="T2D",
+		#default="T2D",
 		help="specify grouping variable in trait file", 
 		metavar="STRING")
 	infoGroup.add_option(
@@ -167,14 +167,9 @@ def OptionSetUp(additional_args = ''):
 	graphGroup.add_option(
 		"--codons",
 		dest="codons",
+		default = False,
 		action="store_true",
 		help="Graph data as codons.")
-	graphGroup.add_option(
-		"--nocodons",
-		dest="codons",
-		default=False,
-		action="store_false",
-		help="Graph data as nucleotides (default)")
 	graphGroup.add_option(
 		"--shape",
 		dest="shape",
@@ -238,14 +233,6 @@ def ProcessBed(bedrow, introns, region):
 		exonDict = dict((region[1]+i,i) for i in range(0, length))
 	else:
 		exonDict=gp.exonbplist(bedrow.get_exons(), introns)
-#	if not exonDict.has_key(region[1]):
-#		options.local_start=gp.bp2exonbp(bedrow.get_exons(), region[1], options.introns)
-#	else:
-#		options.local_start=exonDict[region[1]]
-#	if not exonDict.has_key(region[2]):
-#		options.local_stop=gp.bp2exonbp(bedrow.get_exons(), region[2], options.introns)
-#	else:
-#		options.local_stop=exonDict[region[2]]
 
 	return bedrow, exonDict
 
@@ -336,6 +323,35 @@ def RunJob(job_options, bedRows, v, traits, region):
 	print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
 	#PrintOptions(options, region)
 	gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region, vcfIDs)
+
+def bedRowUnion(bedRows):
+	geneList = []
+	for bedrow in bedRows:
+		chrom = bedrow['chrom'].strip('chr')
+		start = int(bedrow['txStart'])
+		stop = int(bedrow['txEnd'])
+		print "Chr: %s\tStart: %s\tStop: %s"%(chrom, start, stop)
+		geneList.append(bedrow.get_exons())
+	for bedrow in bedRows:
+		print bedrow['geneName'], bedrow['name'],
+		print bedrow.get_exons()
+	#creates a union of the exon tuples, covering total range of the exons
+#	numberList = []
+#	for gene in geneList:
+#		for entry in gene:
+#			for i in range(entry[0], entry[1]+1):
+#				if i not in numberList:
+#					numberList.append(i)
+#	numberList.sort()
+#	tupleList = []
+#	oldLim = numberList[0]
+#	for e in range(1, len(numberList)-1):
+#		if not numberList[e]+1 == numberList[e+1]:
+#			newTuple = (oldLim, numberList[e])
+#			tupleList.append(newTuple)
+#			oldLim = numberList[e+1]
+#	tupleList.append((oldLim, numberList[len(numberList)-1]))
+	#print tupleList
 ######################################################################################	
 if __name__ == "__main__":
 	options, args = OptionSetUp()
@@ -375,6 +391,8 @@ if __name__ == "__main__":
 			last_trait_file = job_options.trait_file
 		bedRows = refFlat.get_rows(job_options.gene)
 		print "Gene Flavors =", len(bedRows)
+#		bedRowUnion(bedRows)
+#		exit(1)
 		if len(bedRows) < 1:
 			job_options=parseChoices( job_options )
 			region = DetermineRegion( job_options )

@@ -123,9 +123,9 @@ def patchPlot(stuff, xLoc, colors, shape, keys):
 	return PatchCollection(patches, match_original=True) #return our collection of patches
 
 
-def SetupPlot(dimensions, alleleColor, title, chrom, codons):
+def SetupPlot(plotSize, dimensions, alleleColor, title, chrom, codons):
 	'''Set up the parameters for the graph.  Receives dimensions [xmin, xmax, ymin, ymax], alleleColor [color1, color2], title for the graph, and chromosome number.'''
-	fig = plt.figure(figsize=(8, 5))#set window size to width, height 
+	fig = plt.figure(figsize=(plotSize[0], plotSize[1]))#set window size to width, height 
 	#add axes in rectangle left position, bottom position, width, height
 	ax1 = fig.add_axes([0.1, 0.3, 0.8, 0.6])
 	ax2 = fig.add_axes([0.1, 0.1, 0.8, 0.2], sharex=ax1)
@@ -144,14 +144,16 @@ def SetupPlot(dimensions, alleleColor, title, chrom, codons):
 		label.set_fontsize(0)#eliminate the labels from our top plot without eliminating them from the bottom
 	horizontalLine = Line2D([-10000000000, 10000000000], [0, 0], linewidth=1, color='black')#draw horizontal x-axis
 	ax1.add_line(horizontalLine)
-	leg1 = ax1.legend((Ellipse((0, 0), 1, 1, color=alleleColor[1]), Ellipse((0, 0), 1, 1, color=alleleColor[0])), ('min(1/1, 0/0)', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=10))
+
+	return ax1, ax2, fig
+
+def makeLegend(axis, alleleColor):
+	leg1 = axis.legend((Ellipse((0, 0), 1, 1, color=alleleColor[1]), Ellipse((0, 0), 1, 1, color=alleleColor[0])), ('min(1/1, 0/0)', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=8))
 	try:
 		leg1.draggable(state=True, use_blit=True)#make the legend draggable
 	except:
 		pass
-
-	return ax1, ax2, fig
-
+	
 def graphName(fileTitle, dirname, extension):
 	'''Saves file under directory, first checking to see if the directory exists, then if the file already exists, creating a new directory or new name based on needs.'''
 	if not os.path.isdir("./" + dirname + "/"): #if the directory doesn't exist, then create it
@@ -175,32 +177,48 @@ def tuplesDomain((opStart, opStop), introns, exonDict, bedRow):
 		stop=exonDict[opStop]
 	return start, stop
 	
-def pictograph(options, vstuff, exonDict, bedRow, traits, region, vcfIDs):
+def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	'''Creates a plot based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
 	start, stop = tuplesDomain((region[1], region[2]), options.introns, exonDict, bedRow)#change the region specified to basepair values
 	dimensions = (start, stop, options.ymin * -1, options.ymax)
-	allelecolors=(options.colorallele1, options.colorallele2)
-	exoncolors=(options.exoncolor1, options.exoncolor2)	
-	ax1, ax2, fig = SetupPlot(dimensions, allelecolors, options.plotTitle, region[0], options.codons) #initialize the graph, with proper range and choices
-	vstuffFiltered = [v for v in vstuff if v.checkFilter(options.filterList)]
+	exoncolors=(options.exoncolor1, options.exoncolor2)
+	plotSize = (options.width, options.height)
+	ax1, ax2, fig = SetupPlot(plotSize, dimensions, options.plotTitle, region[0], options.codons) #initialize the graph, with proper range and choices
+	vDataFiltered = [vmarker for vmarker in vData if vmarker.checkFilter(options.filterList)]
 	#for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
 	tableKeys = [] 
 	traitIDs = [ str(i) for i in traits[options.id] ]
-	for v in vstuffFiltered:
+	if not options.annotation:
+		infoDict={'min(1/1, 0/0)':options.colorallele1,  '1/0 and 0/1':options.colorallele2}
+	else:
+		infoDict = {} #dictionary of info matched with various colors
+	baseColor = (0, 50, 0)
+	for marker in vDataFiltered:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
-		if (exonDict.has_key(int(v.get_pos()))):
+		if (exonDict.has_key(int(marker.get_pos()))):
 			organizedList=CrossTable.cullList(vcfIDs, traitIDs, traits[options.groups])#organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
-			xTable = CrossTable.xTable(organizedList, v.get_genotypes())
+			xTable = CrossTable.xTable(organizedList, marker.get_genotypes())
 			if len( [ t for t in tableKeys if t != None ] ) < 2: 
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
+			markerInfo = marker.get_info(options.annotation)[0]
+			if not infoDict.has_key(markerInfo):
+				variation = (220.0-float(len(infoDict))*50.0)
+				print "Variation: %s"%variation
+				infoDict[markerInfo] = '#%02x%02x%02x' % (0, variation, 0)
+				print "New color needed: %s"%infoDict[markerInfo]
+			if options.annotation:
+				tempColors = (infoDict[markerInfo], infoDict[markerInfo])
+			else:
+				tempColors = (options.colorallele1, options.colorallele2)
 			if len(tableKeys) > 1:
-				if v.is_indel():  #if this gene is an indel, change shape to triangles
-					drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, "triangle", tableKeys)
+				if marker.is_indel():  #if this gene is an indel, change shape to triangles
+					drawings = patchPlot(xTable.getTable(), exonDict[int(marker.get_pos())], tempColors, "triangle", tableKeys)
 				else:
-					drawings = patchPlot(xTable.getTable(), exonDict[int(v.get_pos())], allelecolors, options.shape, tableKeys)
+					drawings = patchPlot(xTable.getTable(), exonDict[int(marker.get_pos())], tempColors, options.shape, tableKeys)
 				ax1.add_collection(drawings)
 	if tableKeys != None and len(tableKeys) > 1: ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[-1]))
-	print "%s markers plotted after filtering."%len(vstuffFiltered)
+	print "%s markers plotted after filtering."%len(vDataFiltered)
+	makeLegend(ax1, infoDict)
 	if bedRow!=[]:#as long as we're actually drawing exons (so a gene, not just a region)
 		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) #draw the exons, adding them to the plot
 		ax2.add_collection(exonRect)

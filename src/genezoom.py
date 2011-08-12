@@ -181,6 +181,15 @@ def OptionSetUp(additional_args = ''):
 		dest="color",
 		default="#0e51a7:#0acf00:#ff9e00:#fd0006",
 		help = "RGB colors for graph.  List of colors in format: #012345:#6789AB:#2468AC:#13579B, for (1/1 frequency, 1/0 frequency, exonColor, exonColor)" )
+	graphGroup.add_option(
+		"--annotation",
+		dest = "annotation",
+		help = "Distinction made in coloring of various vcf markers based on marker info")
+	graphGroup.add_option(
+		"--dimensions",
+		dest = "dimensions",
+		default = "8, 5",
+		help = "Requested dimensions for graph, (width,height) defaulting 8,5")
 	parser.add_option_group(infoGroup)
 	parser.add_option_group(graphGroup)
 	parser.add_option_group(outputGroup)
@@ -271,7 +280,7 @@ def DetermineRegion( options, bedrow=None ):
 		return( options.chrom, options.start-options.flankList[0], options.stop+options.flankList[1] )
 	return (options.chrom, options.start, options.stop)
 def parseChoices(options):
-	#evaluate the scale choices
+	#Y-scale parser
 	try:
 		scaleRE=re.compile(r'(\d+):(\d+)')
 		y=scaleRE.match(options.yscale)
@@ -282,7 +291,7 @@ def parseChoices(options):
 		print "Invalid yscale region.  Defaulting to 25 controls, 25 cases."
 		options.ymin=25
 		options.ymax=25
-	#evaluate the color choices
+	#Color parser
 	try:
 		splitColor=re.split('#([A-Fa-f0-9]{6})', options.color)
 		options.colorallele2='#'+splitColor[1]
@@ -303,26 +312,37 @@ def parseChoices(options):
 			options.plotTitle=options.region
 	else:
 		options.plotTitle=options.title
-	#Check for desired shape.  If none, default to circle.
+	#Shape parser (default circle)
 	if ((options.shape!="circle") and (options.shape!="rect") and (options.shape!="rectangle")):
 		print "Invalid shape %s chosen. Defaulting to circle."%options.shape
 		options.shape="circle"
-	#Check for  s
+	#Filter parser
 	if options.filter!=None:
 		options.filterList = [f.strip() for f in (options.filter).split(',')]
 	else:
 		options.filterList = None
+	#Dimension parser
+	try:
+		dimensionsList = [float(d.strip()) for d in options.dimensions.split(',')]
+		options.width = dimensionsList[0]
+		options.height = dimensionsList[1]
+	except Exception as e:
+		print >> sys.stderr, e
+		"Invalid dimensions choice.  Defaulting to width 8, height 5"
+		options.width = 8	
+		options.height = 5
+	
 	return options
 		
-def RunJob(job_options, bedRows, v, traits, region):
+def RunJob(job_options, bedRows, vReader, traits, region):
 	'''Load and run job'''
 	#logging.critical(str(region))
 	(bedrow, exonDict) = ProcessBed(bedRows, job_options.introns, region)
-	vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
-	vcfIDs = v.get_headers()[9:]
-	print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
+	vData = vReader.reg2vcf(region[0], int(region[1]), int(region[2]))
+	vcfIDs = vReader.get_headers()[9:]
+	print len(vData), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
 	#PrintOptions(options, region)
-	gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region, vcfIDs)
+	gp.pictograph(job_options, vData, exonDict, bedrow, traits, region, vcfIDs)
 
 def bedRowUnion(bedRows):
 	geneList = []
@@ -376,7 +396,7 @@ if __name__ == "__main__":
 		if not job_options.vcf_file == last_vcf_file:
 			try:
 				from tabix import *
-				v=tabixReader(job_options.directory + job_options.vcf_file)
+				vReader=tabixReader(job_options.directory + job_options.vcf_file)
 				last_vcf_file = job_options.vcf_file
 			except Exception as e:
 				print e
@@ -396,13 +416,13 @@ if __name__ == "__main__":
 		if len(bedRows) < 1:
 			job_options=parseChoices( job_options )
 			region = DetermineRegion( job_options )
-			RunJob(job_options, bedRows, v, traits, region)
+			RunJob(job_options, bedRows, vReader, traits, region)
 		else:
 			for bedrow in bedRows:
 				print "\n", bedrow['name'], bedrow['geneName']
 				job_options=parseChoices(job_options)
 				region = DetermineRegion( job_options, bedrow )
-				RunJob(job_options, bedrow, v, traits, region)
+				RunJob(job_options, bedrow, vReader, traits, region)
 	if options.interact:
 		try:
 			from IPython.Shell import IPShellEmbed  # enter interactive ipython

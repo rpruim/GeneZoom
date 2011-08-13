@@ -72,25 +72,25 @@ def OptionSetUp(additional_args = ''):
 	infoGroup.add_option(
 		"--bed",
 		dest="bed", 
-		default='../testing/data/refFlat.txt.gz.1',
+		#default='../testing/data/refFlat.txt.gz.1',
 		metavar="refFlat|knownGene|filename",
 		help="UCSC table or file to use for gene information")
 	infoGroup.add_option(
 		"-v", "--vcf", 
 		dest="vcf_file", 
-		default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
+		#default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
 		help ="vcf file containing genotypes", 
 		metavar="FILE")
 	infoGroup.add_option(
 		"-t", "--traits", 
 		dest="trait_file", 
-		default="../testing/data/458_traits.csv",
+		#default="../testing/data/458_traits.csv",
 		help="trait file", 
 		metavar="FILE")
 	infoGroup.add_option(
 		"-g", "--groups", 
 		dest="groups", 
-		default="T2D",
+		#default="T2D",
 		help="specify grouping variable in trait file", 
 		metavar="STRING")
 	infoGroup.add_option(
@@ -102,7 +102,7 @@ def OptionSetUp(additional_args = ''):
 		"--filter",
 		dest = "filter",
 		default = None,
-		help = "Specify included quality filter")
+		help = "Specify included quality filter in format filter1,filter2, etc.")
 	graphGroup.add_option(
 		"--title",
 		dest="title",
@@ -165,6 +165,12 @@ def OptionSetUp(additional_args = ''):
 		action="store_false",
 		help="Don't show the introns in the graph (default)")
 	graphGroup.add_option(
+		"--codons",
+		dest="codons",
+		default = False,
+		action="store_true",
+		help="Graph data as codons.")
+	graphGroup.add_option(
 		"--shape",
 		dest="shape",
 		default="circle",
@@ -175,6 +181,15 @@ def OptionSetUp(additional_args = ''):
 		dest="color",
 		default="#0e51a7:#0acf00:#ff9e00:#fd0006",
 		help = "RGB colors for graph.  List of colors in format: #012345:#6789AB:#2468AC:#13579B, for (1/1 frequency, 1/0 frequency, exonColor, exonColor)" )
+	graphGroup.add_option(
+		"--annotation",
+		dest = "annotation",
+		help = "Distinction made in coloring of various vcf markers based on marker info")
+	graphGroup.add_option(
+		"--dimensions",
+		dest = "dimensions",
+		default = "8, 5",
+		help = "Requested dimensions for graph, (width,height) defaulting 8,5")
 	parser.add_option_group(infoGroup)
 	parser.add_option_group(graphGroup)
 	parser.add_option_group(outputGroup)
@@ -210,6 +225,7 @@ def PrintOptions( options, region ):
 	print " Calculated Flanks: %s, %s"%(options.flankList[0], options.flankList[1])
 	print "	Cases/Controls: \t%s"%options.ymin+"/%s"%options.ymax
 	print "	Show Introns: \t%s"%options.introns
+	print " Codons:\t%s"%options.codons
 	print "	Colors: \t\t%s"%options.color
 	
 	print "  Output options:"
@@ -226,14 +242,6 @@ def ProcessBed(bedrow, introns, region):
 		exonDict = dict((region[1]+i,i) for i in range(0, length))
 	else:
 		exonDict=gp.exonbplist(bedrow.get_exons(), introns)
-#	if not exonDict.has_key(region[1]):
-#		options.local_start=gp.bp2exonbp(bedrow.get_exons(), region[1], options.introns)
-#	else:
-#		options.local_start=exonDict[region[1]]
-#	if not exonDict.has_key(region[2]):
-#		options.local_stop=gp.bp2exonbp(bedrow.get_exons(), region[2], options.introns)
-#	else:
-#		options.local_stop=exonDict[region[2]]
 
 	return bedrow, exonDict
 
@@ -272,7 +280,7 @@ def DetermineRegion( options, bedrow=None ):
 		return( options.chrom, options.start-options.flankList[0], options.stop+options.flankList[1] )
 	return (options.chrom, options.start, options.stop)
 def parseChoices(options):
-	#evaluate the scale choices
+	#Y-scale parser
 	try:
 		scaleRE=re.compile(r'(\d+):(\d+)')
 		y=scaleRE.match(options.yscale)
@@ -283,7 +291,7 @@ def parseChoices(options):
 		print "Invalid yscale region.  Defaulting to 25 controls, 25 cases."
 		options.ymin=25
 		options.ymax=25
-	#evaluate the color choices
+	#Color parser
 	try:
 		splitColor=re.split('#([A-Fa-f0-9]{6})', options.color)
 		options.colorallele2='#'+splitColor[1]
@@ -304,26 +312,66 @@ def parseChoices(options):
 			options.plotTitle=options.region
 	else:
 		options.plotTitle=options.title
-	#Check for desired shape.  If none, default to circle.
+	#Shape parser (default circle)
 	if ((options.shape!="circle") and (options.shape!="rect") and (options.shape!="rectangle")):
 		print "Invalid shape %s chosen. Defaulting to circle."%options.shape
 		options.shape="circle"
-	#Check for  s
+	#Filter parser
 	if options.filter!=None:
 		options.filterList = [f.strip() for f in (options.filter).split(',')]
 	else:
 		options.filterList = None
+	#Dimension parser
+	try:
+		dimensionsList = [float(d.strip()) for d in options.dimensions.split(',')]
+		options.width = dimensionsList[0]
+		options.height = dimensionsList[1]
+	except Exception as e:
+		print >> sys.stderr, e
+		"Invalid dimensions choice.  Defaulting to width 8, height 5"
+		options.width = 8	
+		options.height = 5
+	
 	return options
 		
-def RunJob(job_options, bedRows, v, traits, region):
+def RunJob(job_options, bedRows, vReader, traits, region):
 	'''Load and run job'''
 	#logging.critical(str(region))
 	(bedrow, exonDict) = ProcessBed(bedRows, job_options.introns, region)
-	vstuff = v.reg2vcf(region[0], int(region[1]), int(region[2]))
-	vcfIDs = v.get_headers()[9:]
-	print len(vstuff), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
+	vData = vReader.reg2vcf(region[0], int(region[1]), int(region[2]))
+	vcfIDs = vReader.get_headers()[9:]
+	print len(vData), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
 	#PrintOptions(options, region)
-	gp.pictograph(job_options, vstuff, exonDict, bedrow, traits, region, vcfIDs)
+	gp.pictograph(job_options, vData, exonDict, bedrow, traits, region, vcfIDs)
+
+def bedRowUnion(bedRows):
+	geneList = []
+	for bedrow in bedRows:
+		chrom = bedrow['chrom'].strip('chr')
+		start = int(bedrow['txStart'])
+		stop = int(bedrow['txEnd'])
+		print "Chr: %s\tStart: %s\tStop: %s"%(chrom, start, stop)
+		geneList.append(bedrow.get_exons())
+	for bedrow in bedRows:
+		print bedrow['geneName'], bedrow['name'],
+		print bedrow.get_exons()
+	#creates a union of the exon tuples, covering total range of the exons
+#	numberList = []
+#	for gene in geneList:
+#		for entry in gene:
+#			for i in range(entry[0], entry[1]+1):
+#				if i not in numberList:
+#					numberList.append(i)
+#	numberList.sort()
+#	tupleList = []
+#	oldLim = numberList[0]
+#	for e in range(1, len(numberList)-1):
+#		if not numberList[e]+1 == numberList[e+1]:
+#			newTuple = (oldLim, numberList[e])
+#			tupleList.append(newTuple)
+#			oldLim = numberList[e+1]
+#	tupleList.append((oldLim, numberList[len(numberList)-1]))
+	#print tupleList
 ######################################################################################	
 if __name__ == "__main__":
 	options, args = OptionSetUp()
@@ -348,7 +396,7 @@ if __name__ == "__main__":
 		if not job_options.vcf_file == last_vcf_file:
 			try:
 				from tabix import *
-				v=tabixReader(job_options.directory + job_options.vcf_file)
+				vReader=tabixReader(job_options.directory + job_options.vcf_file)
 				last_vcf_file = job_options.vcf_file
 			except Exception as e:
 				print e
@@ -363,16 +411,18 @@ if __name__ == "__main__":
 			last_trait_file = job_options.trait_file
 		bedRows = refFlat.get_rows(job_options.gene)
 		print "Gene Flavors =", len(bedRows)
+#		bedRowUnion(bedRows)
+#		exit(1)
 		if len(bedRows) < 1:
 			job_options=parseChoices( job_options )
 			region = DetermineRegion( job_options )
-			RunJob(job_options, bedRows, v, traits, region)
+			RunJob(job_options, bedRows, vReader, traits, region)
 		else:
 			for bedrow in bedRows:
 				print "\n", bedrow['name'], bedrow['geneName']
 				job_options=parseChoices(job_options)
 				region = DetermineRegion( job_options, bedrow )
-				RunJob(job_options, bedrow, v, traits, region)
+				RunJob(job_options, bedrow, vReader, traits, region)
 	if options.interact:
 		try:
 			from IPython.Shell import IPShellEmbed  # enter interactive ipython

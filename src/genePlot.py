@@ -202,12 +202,12 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 			if len( [ t for t in tableKeys if t != None ] ) < 2: #check for case/control elements in our data
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
 			
-			if options.colorize:
+			if options.colorInfo:
 				#print marker.get_info()
-				#print marker.get_info(options.colorize)
+				#print marker.get_info(options.colorInfo)
 				#exit()
 				try: 
-					markerInfo = marker.get_info(options.colorize)[0]    ### better name later?
+					markerInfo = marker.get_info(options.colorInfo)[0]    ### better name later?
 				except:
 					markerInfo = 'N/A'
 			else: 

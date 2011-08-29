@@ -184,12 +184,13 @@ def OptionSetUp(additional_args = ''):
 		"-c",
 		"--color",
 		dest = "color",
-		help = "Distinction made in coloring of various vcf markers based on marker info")
+		default = "#a6cee3, #1f78b4, #b2df8a, #33a02c, #fb9a99, #e31a1c, #fdbf6f, #ff7f00, #cab2d6, #6a3d9a",
+		help = "Palette of colors for marker info variation in rgb, in format #123456,#789abc, etc.")
 	graphGroup.add_option(
 		"--dimensions",
 		dest = "dimensions",
-		default = "8, 5",
-		help = "Requested dimensions for graph, (width,height) defaulting 8,5")
+		default = "8:5",
+		help = "Requested dimensions for graph, width:height defaulting 8:5")
 	parser.add_option_group(infoGroup)
 	parser.add_option_group(graphGroup)
 	parser.add_option_group(outputGroup)
@@ -226,6 +227,7 @@ def PrintOptions( options, region ):
 	print "	Cases/Controls: \t%s"%options.ymin+"/%s"%options.ymax
 	print "	Show Introns: \t%s"%options.introns
 	print " Codons:\t%s"%options.codons
+	print " Info colors:\t%s"%options.color
 	print "	Exon Colors: \t\t%s"%options.exoncolor
 	
 	print "  Output options:"
@@ -279,6 +281,7 @@ def DetermineRegion( options, bedrow=None ):
 	if options.flank:
 		return( options.chrom, options.start-options.flankList[0], options.stop+options.flankList[1] )
 	return (options.chrom, options.start, options.stop)
+
 def parseChoices(options):
 	#Y-scale parser
 	try:
@@ -291,7 +294,7 @@ def parseChoices(options):
 		print "Invalid yscale region.  Defaulting to 25 controls, 25 cases."
 		options.ymin=25
 		options.ymax=25
-	#Color parser
+	#Exon color parser
 	try:
 		exonColors=re.split('#([A-Fa-f0-9]{6})', options.exoncolor)
 		options.exoncolor1='#'+exonColors[1]
@@ -301,6 +304,13 @@ def parseChoices(options):
 		print "Invalid exon color scheme.  Defaulting to original colors."
 		options.exoncolor1='#ff9e00'
 		options.exoncolor2='#fd0006'
+	#Info color parser
+	try:
+		options.palette = [c.strip() for c in options.color.split(',')]
+	except Exception as e:
+		print >> sys.stderr, e
+		print "Invalid color palette given.  Defaulting to original colors."
+		options.palette = ["#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a"]
 	#Check for given title for graph.  If none, default to gene.
 	if options.title==None:
 		options.plotTitle=options.gene
@@ -319,7 +329,7 @@ def parseChoices(options):
 		options.filterList = None
 	#Dimension parser
 	try:
-		dimensionsList = [float(d.strip()) for d in options.dimensions.split(',')]
+		dimensionsList = [float(d.strip()) for d in options.dimensions.split(':')]
 		options.width = dimensionsList[0]
 		options.height = dimensionsList[1]
 	except Exception as e:
@@ -327,7 +337,6 @@ def parseChoices(options):
 		"Invalid dimensions choice.  Defaulting to width 8, height 5"
 		options.width = 8	
 		options.height = 5
-	
 	return options
 		
 def RunJob(job_options, bedRows, vReader, traits, region):

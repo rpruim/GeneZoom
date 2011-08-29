@@ -179,20 +179,19 @@ def tuplesDomain((opStart, opStop), introns, exonDict, bedRow):
 	else:
 		stop=exonDict[opStop]
 	return start, stop
-def makeVariantDict(data, exonDict):
-	'''Makes a dictionary of various colors for different info placed in markers'''
-	infoList = []
-	for marker in data:
-		if exonDict.has_key(int(marker.get_pos())):
-			markerInfo = marker.get_info()[0]
-			if not markerInfo in infoList:
-				infoList.append(markerInfo)
-	colorChoices = []
-	variantsLength = (len(infoList))
-	scale = 255.0/variantsLength
-	colorChoices = ['#%02x%02x%02x' % (20, 230-i*(scale), 20) for i in range(variantsLength)]
-	infoDict = dict(zip(infoList, colorChoices))
-	return infoDict
+#def makeVariantDict(data, exonDict, colors):
+#	'''Makes a dictionary of various colors for different info placed in markers'''
+#	infoList = []
+#	for marker in data:
+#		if exonDict.has_key(int(marker.get_pos())):
+#			markerInfo = marker.get_info()[0]
+#			if not markerInfo in infoList:
+#				infoList.append(markerInfo)
+#	variantsLength = (len(infoList))
+#	scale = 255.0/variantsLength
+#	colorChoices = ['#%02x%02x%02x' % (20, 230-i*(scale), 20) for i in range(variantsLength)]
+#	infoDict = dict(zip(infoList, colorChoices))
+#	return infoDict
 
 def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	'''Creates a plot based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
@@ -205,7 +204,8 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	#for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
 	tableKeys = []
 	traitIDs = [ str(i) for i in traits[options.id] ]
-	infoDict = makeVariantDict(vDataFiltered, exonDict) #dictionary of info matched with various colors
+	#infoDict = makeVariantDict(vDataFiltered, exonDict, options.palette) #dictionary of info matched with various colors
+	infoDict ={}
 	for marker in vDataFiltered:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
 		if (exonDict.has_key(int(marker.get_pos()))):
@@ -214,11 +214,11 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 			if len( [ t for t in tableKeys if t != None ] ) < 2: 
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
 			markerInfo = marker.get_info()[0]
-			if True:
-			#if options.color:
-				tempColors = (infoDict[markerInfo], infoDict[markerInfo])
-			else:
-				tempColors = (options.colorallele1, options.colorallele2)
+			if not infoDict.has_key(markerInfo):
+				if len(infoDict)==len(options.palette):
+					print "Palette full.  Reusing colors."
+				infoDict[markerInfo] = options.palette[len(infoDict)%len(options.palette)]
+			tempColors = (infoDict[markerInfo], infoDict[markerInfo])
 			if len(tableKeys) > 1: 
 				if marker.is_indel():  #if this gene is an indel, change shape to triangles
 					drawings = patchPlot(xTable.getTable(), exonDict[int(marker.get_pos())], tempColors, "triangle", tableKeys)

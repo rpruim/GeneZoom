@@ -176,14 +176,14 @@ def OptionSetUp(additional_args = ''):
 		default="circle",
 		help="Plotted shapes.  Options: 'circle','rectangle' (default circle)")
 	graphGroup.add_option(
-		"-c", 
-		"--color",
-		dest="color",
-		default="#0e51a7:#0acf00:#ff9e00:#fd0006",
-		help = "RGB colors for graph.  List of colors in format: #012345:#6789AB:#2468AC:#13579B, for (1/1 frequency, 1/0 frequency, exonColor, exonColor)" )
+		"--exoncolor",
+		dest="exoncolor",
+		default="#ff9e00:#fd0006",
+		help = "RGB colors for exons in graph.  List of colors in format: #012345:#6789AB" )
 	graphGroup.add_option(
-		"--annotation",
-		dest = "annotation",
+		"-c",
+		"--color",
+		dest = "color",
 		help = "Distinction made in coloring of various vcf markers based on marker info")
 	graphGroup.add_option(
 		"--dimensions",
@@ -226,7 +226,7 @@ def PrintOptions( options, region ):
 	print "	Cases/Controls: \t%s"%options.ymin+"/%s"%options.ymax
 	print "	Show Introns: \t%s"%options.introns
 	print " Codons:\t%s"%options.codons
-	print "	Colors: \t\t%s"%options.color
+	print "	Exon Colors: \t\t%s"%options.exoncolor
 	
 	print "  Output options:"
 	print "	Show graph? \t%s"%options.graph
@@ -293,16 +293,12 @@ def parseChoices(options):
 		options.ymax=25
 	#Color parser
 	try:
-		splitColor=re.split('#([A-Fa-f0-9]{6})', options.color)
-		options.colorallele2='#'+splitColor[1]
-		options.colorallele1='#'+splitColor[3]
-		options.exoncolor1='#'+splitColor[5]
-		options.exoncolor2='#'+splitColor[7]
+		exonColors=re.split('#([A-Fa-f0-9]{6})', options.exoncolor)
+		options.exoncolor1='#'+exonColors[1]
+		options.exoncolor2='#'+exonColors[3]
 	except Exception as e:
 		print >> sys.stderr, e
-		print "Invalid color scheme.  Defaulting to original colors."
-		options.colorallele2='#0e51a7'
-		options.colorallele1='#0acf00'
+		print "Invalid exon color scheme.  Defaulting to original colors."
 		options.exoncolor1='#ff9e00'
 		options.exoncolor2='#fd0006'
 	#Check for given title for graph.  If none, default to gene.

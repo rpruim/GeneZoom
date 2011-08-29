@@ -100,7 +100,7 @@ def patchPlot(stuff, xLoc, colors, shape, keys):
 	#initialization of our patches, with a blank circle to avoid errors of empty list
 	patches = [Circle([xLoc, 0], 1, color='white', alpha=0)] 
 	for ccEntry in stuff.keys():
-		if ccEntry == keys[0]: #if we are drawing controls
+		if ccEntry == keys[0]: #if we are drawing the first element
 			patchLoc = -0.5 #draw them in a downward direction
 		else: #otherwise
 			patchLoc = 0.5 #draw them in an upward direction
@@ -123,7 +123,7 @@ def patchPlot(stuff, xLoc, colors, shape, keys):
 	return PatchCollection(patches, match_original=True) #return our collection of patches
 
 
-def SetupPlot(plotSize, dimensions, alleleColor, title, chrom, codons):
+def SetupPlot(plotSize, dimensions, title, chrom, codons):
 	'''Set up the parameters for the graph.  Receives dimensions [xmin, xmax, ymin, ymax], alleleColor [color1, color2], title for the graph, and chromosome number.'''
 	fig = plt.figure(figsize=(plotSize[0], plotSize[1]))#set window size to width, height 
 	#add axes in rectangle left position, bottom position, width, height
@@ -147,8 +147,11 @@ def SetupPlot(plotSize, dimensions, alleleColor, title, chrom, codons):
 
 	return ax1, ax2, fig
 
-def makeLegend(axis, alleleColor):
-	leg1 = axis.legend((Ellipse((0, 0), 1, 1, color=alleleColor[1]), Ellipse((0, 0), 1, 1, color=alleleColor[0])), ('min(1/1, 0/0)', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=8))
+def makeLegend(axis, colorDict):
+	colorKeys = colorDict.keys()
+	colorValues = [Ellipse((0,0), 1, 1, color = colorDict[key]) for key in colorKeys]
+	leg1 = axis.legend(colorValues, colorKeys, shadow=True, fancybox=True, prop=font_manager.FontProperties(size=8))
+	#leg1 = axis.legend((Ellipse((0, 0), 1, 1, color=alleleColor[1]), Ellipse((0, 0), 1, 1, color=alleleColor[0])), ('min(1/1, 0/0)', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=8))
 	try:
 		leg1.draggable(state=True, use_blit=True)#make the legend draggable
 	except:
@@ -176,7 +179,7 @@ def tuplesDomain((opStart, opStop), introns, exonDict, bedRow):
 	else:
 		stop=exonDict[opStop]
 	return start, stop
-	
+
 def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	'''Creates a plot based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
 	start, stop = tuplesDomain((region[1], region[2]), options.introns, exonDict, bedRow)#change the region specified to basepair values
@@ -186,13 +189,10 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	ax1, ax2, fig = SetupPlot(plotSize, dimensions, options.plotTitle, region[0], options.codons) #initialize the graph, with proper range and choices
 	vDataFiltered = [vmarker for vmarker in vData if vmarker.checkFilter(options.filterList)]
 	#for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
-	tableKeys = [] 
+	tableKeys = []
 	traitIDs = [ str(i) for i in traits[options.id] ]
-	if not options.annotation:
-		infoDict={'min(1/1, 0/0)':options.colorallele1,  '1/0 and 0/1':options.colorallele2}
-	else:
-		infoDict = {} #dictionary of info matched with various colors
-	baseColor = (0, 50, 0)
+	#infoDict = makeVariantDict(vDataFiltered, exonDict, options.palette) #dictionary of info matched with various colors
+	infoDict ={}
 	for marker in vDataFiltered:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
 		if (exonDict.has_key(int(marker.get_pos()))):
@@ -200,29 +200,30 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 			xTable = CrossTable.xTable(organizedList, marker.get_genotypes())
 			if len( [ t for t in tableKeys if t != None ] ) < 2: 
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
-			markerInfo = marker.get_info(options.annotation)[0]
-			if not infoDict.has_key(markerInfo):
-				variation = (220.0-float(len(infoDict))*50.0)
-				print "Variation: %s"%variation
-				infoDict[markerInfo] = '#%02x%02x%02x' % (0, variation, 0)
-				print "New color needed: %s"%infoDict[markerInfo]
-			if options.annotation:
-				tempColors = (infoDict[markerInfo], infoDict[markerInfo])
-			else:
-				tempColors = (options.colorallele1, options.colorallele2)
-			if len(tableKeys) > 1:
+			
+			markerInfo = marker.get_info()[0]
+			if not infoDict.has_key(markerInfo):#if the info is not in our dict
+				if len(infoDict)==len(options.palette):#check to see if we've used our whole palette
+					print "No more colors in palette.  Reusing colors."
+				infoDict[markerInfo] = options.palette[len(infoDict)%len(options.palette)]
+			tempColors = (infoDict[markerInfo], infoDict[markerInfo])
+			
+			if len(tableKeys) > 1: 
 				if marker.is_indel():  #if this gene is an indel, change shape to triangles
 					drawings = patchPlot(xTable.getTable(), exonDict[int(marker.get_pos())], tempColors, "triangle", tableKeys)
 				else:
 					drawings = patchPlot(xTable.getTable(), exonDict[int(marker.get_pos())], tempColors, options.shape, tableKeys)
 				ax1.add_collection(drawings)
-	if tableKeys != None and len(tableKeys) > 1: ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[-1]))
 	print "%s markers plotted after filtering."%len(vDataFiltered)
-	makeLegend(ax1, infoDict)
+	
+	if tableKeys != None and len(tableKeys) > 1: ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[-1]))
+	if not options.nolegend:
+		makeLegend(ax1, infoDict)
 	if bedRow!=[]:#as long as we're actually drawing exons (so a gene, not just a region)
 		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) #draw the exons, adding them to the plot
 		ax2.add_collection(exonRect)
 	ax2.add_line(Line2D([-10000000000, 10000000000], [0, 0], linewidth=1, color='black'))
+	
 	if options.png:
 		saveFile =  graphName(options.prefix, "results", ".png")#if user has chosen to save graph as a png, save it
 		fig.savefig(saveFile)
@@ -236,11 +237,4 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 
 ############################################################
 if __name__ == "__main__":
-	tupleList=((3, 6), (10, 14), (16, 19))
-	print tupleList
-	print "{",
-	for i in range(3, 20):
-		print "%s: %s,"%(i, bp2exonbp(tupleList, i, False)),
-	print "}"
-	print exonbplist(tupleList, False)
-	print exonbplist(tupleList, True)
+	pass

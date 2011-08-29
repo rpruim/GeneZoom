@@ -33,7 +33,6 @@ def OptionSetUp(additional_args = ''):
 	parser.add_option(
 		"-b", "--batch",
 		dest="batchfile", 
-#		default=None,
 		metavar="FILENAME",
 		help="file with controls for batch operation")
 	parser.add_option(
@@ -61,7 +60,6 @@ def OptionSetUp(additional_args = ''):
 	infoGroup.add_option(
 		"--gene",
 		dest="gene",
-		#default='NM_152486',
 		metavar="GENENAME",
 		help="Gene to graph")
 	infoGroup.add_option(
@@ -72,25 +70,21 @@ def OptionSetUp(additional_args = ''):
 	infoGroup.add_option(
 		"--bed",
 		dest="bed", 
-		#default='../testing/data/refFlat.txt.gz.1',
 		metavar="refFlat|knownGene|filename",
 		help="UCSC table or file to use for gene information")
 	infoGroup.add_option(
 		"-v", "--vcf", 
 		dest="vcf_file", 
-		#default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
 		help ="vcf file containing genotypes", 
 		metavar="FILE")
 	infoGroup.add_option(
 		"-t", "--traits", 
 		dest="trait_file", 
-		#default="../testing/data/458_traits.csv",
 		help="trait file", 
 		metavar="FILE")
 	infoGroup.add_option(
 		"-g", "--groups", 
 		dest="groups", 
-		#default="T2D",
 		help="specify grouping variable in trait file", 
 		metavar="STRING")
 	infoGroup.add_option(
@@ -117,7 +111,6 @@ def OptionSetUp(additional_args = ''):
 	graphGroup.add_option(
 		"-r", "--region", 
 		dest="region", 
-		#default='1:873000-880000',
 		help="specify region of interest", 
 		metavar="chr:start-stop")
 	outputGroup.add_option(
@@ -156,7 +149,7 @@ def OptionSetUp(additional_args = ''):
 	graphGroup.add_option(
 		"--introns",
 		dest="introns",
-		action="store_true",
+			action="store_true",
 		help="Show the introns in the graph")
 	graphGroup.add_option(
 		"--nointrons",
@@ -176,27 +169,33 @@ def OptionSetUp(additional_args = ''):
 		default="circle",
 		help="Plotted shapes.  Options: 'circle','rectangle' (default circle)")
 	graphGroup.add_option(
-		"-c", 
-		"--color",
-		dest="color",
-		default="#0e51a7:#0acf00:#ff9e00:#fd0006",
-		help = "RGB colors for graph.  List of colors in format: #012345:#6789AB:#2468AC:#13579B, for (1/1 frequency, 1/0 frequency, exonColor, exonColor)" )
+		"--exoncolor",
+		dest="exoncolor",
+		default="#ff9e00:#fd0006",
+		help = "RGB colors for exons in graph.  List of colors in format: #012345:#6789AB" )
 	graphGroup.add_option(
-		"--annotation",
-		dest = "annotation",
-		help = "Distinction made in coloring of various vcf markers based on marker info")
+		"-c",
+		"--color",
+		dest = "color",
+		default = "#a6cee3, #1f78b4, #b2df8a, #33a02c, #fb9a99, #e31a1c, #fdbf6f, #ff7f00, #cab2d6, #6a3d9a",
+		help = "Palette of colors for marker info variation in rgb, in format '#123456,#789abc,#56789a,etc.'")
+	graphGroup.add_option(
+		"--nolegend",
+		dest="nolegend",
+		default = False,
+		action="store_true",
+		help="Don't show the legend.")
 	graphGroup.add_option(
 		"--dimensions",
 		dest = "dimensions",
-		default = "8, 5",
-		help = "Requested dimensions for graph, (width,height) defaulting 8,5")
+		default = "8:5",
+		help = "Requested dimensions for graph, width:height defaulting 8:5")
 	parser.add_option_group(infoGroup)
 	parser.add_option_group(graphGroup)
 	parser.add_option_group(outputGroup)
 	(options, args) = parser.parse_args(sys.argv[1:] + parseCommandLine(additional_args))
 	
 	return (options, args)
-
 
 def DataSetup( traitfile, bedfile ):
 	'''Sets up the data for the UCSC file for gene information and the exon base pairs.'''
@@ -226,7 +225,8 @@ def PrintOptions( options, region ):
 	print "	Cases/Controls: \t%s"%options.ymin+"/%s"%options.ymax
 	print "	Show Introns: \t%s"%options.introns
 	print " Codons:\t%s"%options.codons
-	print "	Colors: \t\t%s"%options.color
+	print " Info colors:\t%s"%options.color
+	print "	Exon Colors: \t\t%s"%options.exoncolor
 	
 	print "  Output options:"
 	print "	Show graph? \t%s"%options.graph
@@ -279,6 +279,7 @@ def DetermineRegion( options, bedrow=None ):
 	if options.flank:
 		return( options.chrom, options.start-options.flankList[0], options.stop+options.flankList[1] )
 	return (options.chrom, options.start, options.stop)
+
 def parseChoices(options):
 	#Y-scale parser
 	try:
@@ -291,20 +292,23 @@ def parseChoices(options):
 		print "Invalid yscale region.  Defaulting to 25 controls, 25 cases."
 		options.ymin=25
 		options.ymax=25
-	#Color parser
+	#Exon color parser
 	try:
-		splitColor=re.split('#([A-Fa-f0-9]{6})', options.color)
-		options.colorallele2='#'+splitColor[1]
-		options.colorallele1='#'+splitColor[3]
-		options.exoncolor1='#'+splitColor[5]
-		options.exoncolor2='#'+splitColor[7]
+		exonColors=re.split('#([A-Fa-f0-9]{6})', options.exoncolor)
+		options.exoncolor1='#'+exonColors[1]
+		options.exoncolor2='#'+exonColors[3]
 	except Exception as e:
 		print >> sys.stderr, e
-		print "Invalid color scheme.  Defaulting to original colors."
-		options.colorallele2='#0e51a7'
-		options.colorallele1='#0acf00'
+		print "Invalid exon color scheme.  Defaulting to original colors."
 		options.exoncolor1='#ff9e00'
 		options.exoncolor2='#fd0006'
+	#Info color parser
+	try:
+		options.palette = [c.strip() for c in options.color.split(',')]
+	except Exception as e:
+		print >> sys.stderr, e
+		print "Invalid color palette given.  Defaulting to original colors."
+		options.palette = ["#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a"]
 	#Check for given title for graph.  If none, default to gene.
 	if options.title==None:
 		options.plotTitle=options.gene
@@ -323,7 +327,7 @@ def parseChoices(options):
 		options.filterList = None
 	#Dimension parser
 	try:
-		dimensionsList = [float(d.strip()) for d in options.dimensions.split(',')]
+		dimensionsList = [float(d.strip()) for d in options.dimensions.split(':')]
 		options.width = dimensionsList[0]
 		options.height = dimensionsList[1]
 	except Exception as e:
@@ -331,7 +335,6 @@ def parseChoices(options):
 		"Invalid dimensions choice.  Defaulting to width 8, height 5"
 		options.width = 8	
 		options.height = 5
-	
 	return options
 		
 def RunJob(job_options, bedRows, vReader, traits, region):

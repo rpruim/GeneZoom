@@ -227,6 +227,7 @@ def PrintOptions( options, region ):
 	print " Codons:\t%s"%options.codons
 	print " Info colors:\t%s"%options.color
 	print "	Exon Colors: \t\t%s"%options.exoncolor
+	print " Show Legend? \t%s"%options.nolegend
 	
 	print "  Output options:"
 	print "	Show graph? \t%s"%options.graph
@@ -335,6 +336,7 @@ def parseChoices(options):
 		"Invalid dimensions choice.  Defaulting to width 8, height 5"
 		options.width = 8	
 		options.height = 5
+	
 	return options
 		
 def RunJob(job_options, bedRows, vReader, traits, region):
@@ -358,23 +360,7 @@ def bedRowUnion(bedRows):
 	for bedrow in bedRows:
 		print bedrow['geneName'], bedrow['name'],
 		print bedrow.get_exons()
-	#creates a union of the exon tuples, covering total range of the exons
-#	numberList = []
-#	for gene in geneList:
-#		for entry in gene:
-#			for i in range(entry[0], entry[1]+1):
-#				if i not in numberList:
-#					numberList.append(i)
-#	numberList.sort()
-#	tupleList = []
-#	oldLim = numberList[0]
-#	for e in range(1, len(numberList)-1):
-#		if not numberList[e]+1 == numberList[e+1]:
-#			newTuple = (oldLim, numberList[e])
-#			tupleList.append(newTuple)
-#			oldLim = numberList[e+1]
-#	tupleList.append((oldLim, numberList[len(numberList)-1]))
-	#print tupleList
+
 ######################################################################################	
 if __name__ == "__main__":
 	options, args = OptionSetUp()

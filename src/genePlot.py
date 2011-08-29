@@ -4,7 +4,8 @@ Created on Jun 8, 2011
 A program to generate a dotgraph based on information acquired from a vcf file, using genezoom to create a table of said data
 
 '''
-
+import matplotlib
+matplotlib.use("Agg")
 import CrossTable
 import os
 import matplotlib.pyplot as plt
@@ -148,6 +149,7 @@ def SetupPlot(plotSize, dimensions, title, chrom, codons):
 	return ax1, ax2, fig
 
 def makeLegend(axis, colorDict):
+	'''Make the legend for the plot, receiving the axis and a color dictionary'''
 	colorKeys = colorDict.keys()
 	colorValues = [Ellipse((0,0), 1, 1, color = colorDict[key]) for key in colorKeys]
 	leg1 = axis.legend(colorValues, colorKeys, shadow=True, fancybox=True, prop=font_manager.FontProperties(size=8))
@@ -188,17 +190,16 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	plotSize = (options.width, options.height)
 	ax1, ax2, fig = SetupPlot(plotSize, dimensions, options.plotTitle, region[0], options.codons) #initialize the graph, with proper range and choices
 	vDataFiltered = [vmarker for vmarker in vData if vmarker.checkFilter(options.filterList)]
-	#for each element of vstuff (the data of chromosomes) create the cross table, add the proper dotGraph to the total plot
 	tableKeys = []
 	traitIDs = [ str(i) for i in traits[options.id] ]
-	#infoDict = makeVariantDict(vDataFiltered, exonDict, options.palette) #dictionary of info matched with various colors
+	
 	infoDict ={}
 	for marker in vDataFiltered:
 		#check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
 		if (exonDict.has_key(int(marker.get_pos()))):
 			organizedList=CrossTable.cullList(vcfIDs, traitIDs, traits[options.groups])#organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
 			xTable = CrossTable.xTable(organizedList, marker.get_genotypes())
-			if len( [ t for t in tableKeys if t != None ] ) < 2: 
+			if len( [ t for t in tableKeys if t != None ] ) < 2: #check for case/control elements in our data
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
 			
 			markerInfo = marker.get_info()[0]
@@ -209,14 +210,14 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 			tempColors = (infoDict[markerInfo], infoDict[markerInfo])
 			
 			if len(tableKeys) > 1: 
-				if marker.is_indel():  #if this gene is an indel, change shape to triangles
+				if marker.is_indel():  #if this gene is an indel, draw triangles instead
 					drawings = patchPlot(xTable.getTable(), exonDict[int(marker.get_pos())], tempColors, "triangle", tableKeys)
 				else:
 					drawings = patchPlot(xTable.getTable(), exonDict[int(marker.get_pos())], tempColors, options.shape, tableKeys)
 				ax1.add_collection(drawings)
 	print "%s markers plotted after filtering."%len(vDataFiltered)
 	
-	if tableKeys != None and len(tableKeys) > 1: ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[-1]))
+	if tableKeys != None and len(tableKeys) > 1: ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[-1]))#make y-axis label as needed
 	if not options.nolegend:
 		makeLegend(ax1, infoDict)
 	if bedRow!=[]:#as long as we're actually drawing exons (so a gene, not just a region)

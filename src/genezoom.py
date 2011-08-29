@@ -33,7 +33,6 @@ def OptionSetUp(additional_args = ''):
 	parser.add_option(
 		"-b", "--batch",
 		dest="batchfile", 
-#		default=None,
 		metavar="FILENAME",
 		help="file with controls for batch operation")
 	parser.add_option(
@@ -61,7 +60,6 @@ def OptionSetUp(additional_args = ''):
 	infoGroup.add_option(
 		"--gene",
 		dest="gene",
-		#default='NM_152486',
 		metavar="GENENAME",
 		help="Gene to graph")
 	infoGroup.add_option(
@@ -72,25 +70,21 @@ def OptionSetUp(additional_args = ''):
 	infoGroup.add_option(
 		"--bed",
 		dest="bed", 
-		#default='../testing/data/refFlat.txt.gz.1',
 		metavar="refFlat|knownGene|filename",
 		help="UCSC table or file to use for gene information")
 	infoGroup.add_option(
 		"-v", "--vcf", 
 		dest="vcf_file", 
-		#default="../testing/data/458_samples_from_bcm_bi_and_washu.annot.vcf.gz.1",
 		help ="vcf file containing genotypes", 
 		metavar="FILE")
 	infoGroup.add_option(
 		"-t", "--traits", 
 		dest="trait_file", 
-		#default="../testing/data/458_traits.csv",
 		help="trait file", 
 		metavar="FILE")
 	infoGroup.add_option(
 		"-g", "--groups", 
 		dest="groups", 
-		#default="T2D",
 		help="specify grouping variable in trait file", 
 		metavar="STRING")
 	infoGroup.add_option(
@@ -117,7 +111,6 @@ def OptionSetUp(additional_args = ''):
 	graphGroup.add_option(
 		"-r", "--region", 
 		dest="region", 
-		#default='1:873000-880000',
 		help="specify region of interest", 
 		metavar="chr:start-stop")
 	outputGroup.add_option(
@@ -156,7 +149,7 @@ def OptionSetUp(additional_args = ''):
 	graphGroup.add_option(
 		"--introns",
 		dest="introns",
-		action="store_true",
+			action="store_true",
 		help="Show the introns in the graph")
 	graphGroup.add_option(
 		"--nointrons",
@@ -185,7 +178,13 @@ def OptionSetUp(additional_args = ''):
 		"--color",
 		dest = "color",
 		default = "#a6cee3, #1f78b4, #b2df8a, #33a02c, #fb9a99, #e31a1c, #fdbf6f, #ff7f00, #cab2d6, #6a3d9a",
-		help = "Palette of colors for marker info variation in rgb, in format #123456,#789abc, etc.")
+		help = "Palette of colors for marker info variation in rgb, in format '#123456,#789abc,#56789a,etc.'")
+	graphGroup.add_option(
+		"--nolegend",
+		dest="nolegend",
+		default = False,
+		action="store_true",
+		help="Don't show the legend.")
 	graphGroup.add_option(
 		"--dimensions",
 		dest = "dimensions",
@@ -197,7 +196,6 @@ def OptionSetUp(additional_args = ''):
 	(options, args) = parser.parse_args(sys.argv[1:] + parseCommandLine(additional_args))
 	
 	return (options, args)
-
 
 def DataSetup( traitfile, bedfile ):
 	'''Sets up the data for the UCSC file for gene information and the exon base pairs.'''

@@ -100,7 +100,7 @@ def patchPlot(stuff, xLoc, colors, shape, keys):
 	#initialization of our patches, with a blank circle to avoid errors of empty list
 	patches = [Circle([xLoc, 0], 1, color='white', alpha=0)] 
 	for ccEntry in stuff.keys():
-		if ccEntry == keys[0]: #if we are drawing controls
+		if ccEntry == keys[0]: #if we are drawing the first element
 			patchLoc = -0.5 #draw them in a downward direction
 		else: #otherwise
 			patchLoc = 0.5 #draw them in an upward direction
@@ -179,19 +179,6 @@ def tuplesDomain((opStart, opStop), introns, exonDict, bedRow):
 	else:
 		stop=exonDict[opStop]
 	return start, stop
-#def makeVariantDict(data, exonDict, colors):
-#	'''Makes a dictionary of various colors for different info placed in markers'''
-#	infoList = []
-#	for marker in data:
-#		if exonDict.has_key(int(marker.get_pos())):
-#			markerInfo = marker.get_info()[0]
-#			if not markerInfo in infoList:
-#				infoList.append(markerInfo)
-#	variantsLength = (len(infoList))
-#	scale = 255.0/variantsLength
-#	colorChoices = ['#%02x%02x%02x' % (20, 230-i*(scale), 20) for i in range(variantsLength)]
-#	infoDict = dict(zip(infoList, colorChoices))
-#	return infoDict
 
 def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	'''Creates a plot based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
@@ -213,12 +200,14 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 			xTable = CrossTable.xTable(organizedList, marker.get_genotypes())
 			if len( [ t for t in tableKeys if t != None ] ) < 2: 
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
+			
 			markerInfo = marker.get_info()[0]
-			if not infoDict.has_key(markerInfo):
-				if len(infoDict)==len(options.palette):
-					print "Palette full.  Reusing colors."
+			if not infoDict.has_key(markerInfo):#if the info is not in our dict
+				if len(infoDict)==len(options.palette):#check to see if we've used our whole palette
+					print "No more colors in palette.  Reusing colors."
 				infoDict[markerInfo] = options.palette[len(infoDict)%len(options.palette)]
 			tempColors = (infoDict[markerInfo], infoDict[markerInfo])
+			
 			if len(tableKeys) > 1: 
 				if marker.is_indel():  #if this gene is an indel, change shape to triangles
 					drawings = patchPlot(xTable.getTable(), exonDict[int(marker.get_pos())], tempColors, "triangle", tableKeys)
@@ -228,7 +217,8 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	print "%s markers plotted after filtering."%len(vDataFiltered)
 	
 	if tableKeys != None and len(tableKeys) > 1: ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[-1]))
-	makeLegend(ax1, infoDict)
+	if not options.nolegend:
+		makeLegend(ax1, infoDict)
 	if bedRow!=[]:#as long as we're actually drawing exons (so a gene, not just a region)
 		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) #draw the exons, adding them to the plot
 		ax2.add_collection(exonRect)
@@ -247,11 +237,4 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 
 ############################################################
 if __name__ == "__main__":
-	tupleList=((3, 6), (10, 14), (16, 19))
-	print tupleList
-	print "{",
-	for i in range(3, 20):
-		print "%s: %s,"%(i, bp2exonbp(tupleList, i, False)),
-	print "}"
-	print exonbplist(tupleList, False)
-	print exonbplist(tupleList, True)
+	pass

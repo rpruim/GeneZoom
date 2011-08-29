@@ -88,6 +88,11 @@ def OptionSetUp(additional_args = ''):
 		help="specify grouping variable in trait file", 
 		metavar="STRING")
 	infoGroup.add_option(
+		"--colorize", 
+		dest="colorize", 
+		help="info field to use for coloring", 
+		metavar="STRING")
+	infoGroup.add_option(
 		"--id",
 		dest= "id",
 		default = "ID",

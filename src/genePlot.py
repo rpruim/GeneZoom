@@ -202,7 +202,17 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 			if len( [ t for t in tableKeys if t != None ] ) < 2: #check for case/control elements in our data
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
 			
-			markerInfo = marker.get_info()[0]
+			if options.colorize:
+				#print marker.get_info()
+				#print marker.get_info(options.colorize)
+				#exit()
+				try: 
+					markerInfo = marker.get_info(options.colorize)[0]    ### better name later?
+				except:
+					markerInfo = 'N/A'
+			else: 
+				markerInfo = marker.get_info()[0]                 ### better default later?
+				
 			if not infoDict.has_key(markerInfo):#if the info is not in our dict
 				if len(infoDict)==len(options.palette):#check to see if we've used our whole palette
 					print "No more colors in palette.  Reusing colors."

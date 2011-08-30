@@ -14,6 +14,8 @@ from matplotlib.lines import Line2D
 from matplotlib.collections import PatchCollection
 import matplotlib.ticker as ticker
 from matplotlib import font_manager
+import re
+
 
 ######################################################
 
@@ -182,6 +184,20 @@ def tuplesDomain((opStart, opStop), introns, exonDict, bedRow):
 		stop=exonDict[opStop]
 	return start, stop
 
+def myop( a, op, b):
+	op = op.strip()
+	try:
+		if op == '<' : return a < b
+		if op == '>' : return a > b
+		if op == '=' : return a == b
+		if op == '==' : return a == b
+		if op == '>=' : return a >= b
+		if op == '<=' : return a <= b
+		if op == '!=' : return a != b
+	except:
+		return None
+	return None
+
 def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	'''Creates a plot based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
 	start, stop = tuplesDomain((region[1], region[2]), options.introns, exonDict, bedRow)#change the region specified to basepair values
@@ -189,7 +205,16 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	exoncolors=(options.exoncolor1, options.exoncolor2)
 	plotSize = (options.width, options.height)
 	ax1, ax2, fig = SetupPlot(plotSize, dimensions, options.plotTitle, region[0], options.codons) #initialize the graph, with proper range and choices
-	vDataFiltered = [vmarker for vmarker in vData if vmarker.checkFilter(options.filterList)]
+	vDataFiltered = [ vmarker for vmarker in vData if vmarker.checkFilter(options.filterList) ]
+	for thresh in options.threshList:
+		(field, op, val) = re.split('(<=|>=|==|!=|>|=|<)', thresh)
+		field=field.strip()
+		val=float(val.strip())
+		try:
+			vDataFiltered = [ vmarker for vmarker in vDataFiltered if myop( float(vmarker.get_info(field).split(',')[0]), op, val) ]
+		except: 
+			print "unable to apply treshold", thresh, 'to', vDataFiltered[0].get_info(field)
+
 	tableKeys = []
 	traitIDs = [ str(i) for i in traits[options.id] ]
 	

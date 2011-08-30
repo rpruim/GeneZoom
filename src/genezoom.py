@@ -102,6 +102,11 @@ def OptionSetUp(additional_args = ''):
 		dest = "filter",
 		default = None,
 		help = "Specify included quality filter in format filter1,filter2, etc.")
+	infoGroup.add_option(
+		"--thresh",
+		dest = "thresh",
+		default = None,
+		help = "Specify comma separated list of thresholding filters such as 'AF<=.05,N>10'.")
 	graphGroup.add_option(
 		"--title",
 		dest="title",
@@ -331,6 +336,12 @@ def parseChoices(options):
 		options.filterList = [f.strip() for f in (options.filter).split(',')]
 	else:
 		options.filterList = None
+	# Threshold filter parser
+	if options.thresh!=None:
+		options.threshList = [t.strip() for t in (options.thresh).split(',')]
+	else:
+		options.threshList = None
+
 	#Dimension parser
 	try:
 		dimensionsList = [float(d.strip()) for d in options.dimensions.split(':')]

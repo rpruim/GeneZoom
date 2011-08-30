@@ -193,7 +193,7 @@ def OptionSetUp(additional_args = ''):
 		"-c",
 		"--color",
 		dest = "color",
-		default = "#a6cee3, #1f78b4, #b2df8a, #33a02c, #fb9a99, #e31a1c, #fdbf6f, #ff7f00, #cab2d6, #6a3d9a",
+		default = "#1f78b4, #a6cee3, #b2df8a, #33a02c, #fb9a99, #e31a1c, #fdbf6f, #ff7f00, #cab2d6, #6a3d9a",
 		help = "Palette of colors for marker info variation in rgb, in format '#123456,#789abc,#56789a,etc.'")
 	graphGroup.add_option(
 		"--nolegend",

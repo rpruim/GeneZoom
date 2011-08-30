@@ -186,17 +186,28 @@ def tuplesDomain((opStart, opStop), introns, exonDict, bedRow):
 
 def myop( a, op, b):
 	op = op.strip()
+	if a == None or a==[]: 
+		return [True]
+	if not isinstance(a, list):
+		a = [a]
 	try:
-		if op == '<' : return a < b
-		if op == '>' : return a > b
-		if op == '=' : return a == b
-		if op == '==' : return a == b
-		if op == '>=' : return a >= b
-		if op == '<=' : return a <= b
-		if op == '!=' : return a != b
+		if op == '<' : return [ i < b for i in a ]
+		if op == '>' : return [i > b for i in a ]
+		if op == '=' : return [i == b for i in a ]
+		if op == '==' : return [i == b for i in a ]
+		if op == '>=' : return [i >= b for i in a ]
+		if op == '<=' : return [i <= b for i in a ]
+		if op == '!=' : return [i != b for i in a ]
 	except:
 		return None
 	return None
+
+
+def KeepMarkerByMAF(freq, thresh):
+	if len(freq) < 1:
+		return True
+	return not thresh < freq[0] < 1-thresh
+
 
 def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	'''Creates a plot based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
@@ -206,14 +217,17 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	plotSize = (options.width, options.height)
 	ax1, ax2, fig = SetupPlot(plotSize, dimensions, options.plotTitle, region[0], options.codons) #initialize the graph, with proper range and choices
 	vDataFiltered = [ vmarker for vmarker in vData if vmarker.checkFilter(options.filterList) ]
+	if options.MAF:
+		vDataFiltered = [ vmarker for vmarker in vDataFiltered if KeepMarkerByMAF(vmarker.get_info('AF'), options.MAF ) ]
+
 	for thresh in options.threshList:
 		(field, op, val) = re.split('(<=|>=|==|!=|>|=|<)', thresh)
 		field=field.strip()
 		val=float(val.strip())
 		try:
-			vDataFiltered = [ vmarker for vmarker in vDataFiltered if myop( float(vmarker.get_info(field).split(',')[0]), op, val) ]
+			vDataFiltered = [ vmarker for vmarker in vDataFiltered if sum( myop( vmarker.get_info(field), op, val) ) >= len(vmarker.get_info(field)) ]
 		except: 
-			print "unable to apply treshold", thresh, 'to', vDataFiltered[0].get_info(field)
+			print "unable to apply treshold", thresh, 'to', field
 
 	tableKeys = []
 	traitIDs = [ str(i) for i in traits[options.id] ]

@@ -103,6 +103,12 @@ def OptionSetUp(additional_args = ''):
 		default = None,
 		help = "Specify included quality filter in format filter1,filter2, etc.")
 	infoGroup.add_option(
+		"--MAF",
+		dest = "MAF",
+		type='float',
+		default = None,
+		help = "maximum MAF to retain")
+	infoGroup.add_option(
 		"--thresh",
 		dest = "thresh",
 		default = None,

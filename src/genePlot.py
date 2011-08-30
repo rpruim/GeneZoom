@@ -204,9 +204,13 @@ def myop( a, op, b):
 
 
 def KeepMarkerByMAF(freq, thresh):
-	if len(freq) < 1:
+	try:
+		if len(freq) < 1:
+			return True
+		return not thresh < freq[0] < 1-thresh
+	except:
+		print (freq, thresh)
 		return True
-	return not thresh < freq[0] < 1-thresh
 
 
 def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):

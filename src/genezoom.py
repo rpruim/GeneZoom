@@ -340,7 +340,7 @@ def parseChoices(options):
 	if options.thresh!=None:
 		options.threshList = [t.strip() for t in (options.thresh).split(',')]
 	else:
-		options.threshList = None
+		options.threshList = []
 
 	#Dimension parser
 	try:

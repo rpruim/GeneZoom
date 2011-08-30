@@ -4,6 +4,11 @@ import re
 import string
 import logging
 
+def itemOrDefault(d, k, default=None):
+	try:
+		return d[k]
+	except:
+		return default
 
 def getItemByNameFromEqList(list, key):
 	if key == None: 
@@ -71,6 +76,7 @@ class VCFrow:
 		if stop == None:
 			stop = len(self._items)
 		result = {}
+		
 		for col in range(start, stop):
 			try:
 				keys = string.split(self._items[col], ":")
@@ -79,6 +85,12 @@ class VCFrow:
 				result[ keys[0] ] = 1 
 
 		return result
+
+	def get_maf(self):
+		tally = self.genotypeTally()
+		af1 = 2 * itemOrDefault(tally,'0/0',0) + itemOrDefault(tally,'0/1',0)
+		af2 = 2 * itemOrDefault(tally,'1/1',0) + itemOrDefault(tally,'0/1',0)
+		return ( min([af1,af2]) / float(af1 + af2) )
 
 	def get(self, key, cast=str):
 		i = min( [ a for (a,b) in zip( range(len(self._items[8])), self._items[8].split(':')) if b == key ] )

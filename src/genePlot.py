@@ -222,7 +222,10 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	ax1, ax2, fig = SetupPlot(plotSize, dimensions, options.plotTitle, region[0], options.codons) #initialize the graph, with proper range and choices
 	vDataFiltered = [ vmarker for vmarker in vData if vmarker.checkFilter(options.filterList) ]
 	if options.MAF:
-		vDataFiltered = [ vmarker for vmarker in vDataFiltered if KeepMarkerByMAF(vmarker.get_info('AF'), options.MAF ) ]
+		a = max( [ vmarker.get_maf() for vmarker in vDataFiltered ] )
+		vDataFiltered = [ vmarker for vmarker in vDataFiltered if vmarker.get_maf() < options.MAF ]
+		b = max( [ vmarker.get_maf() for vmarker in vDataFiltered ] )
+		print a, '->', b
 
 	for thresh in options.threshList:
 		(field, op, val) = re.split('(<=|>=|==|!=|>|=|<)', thresh)
@@ -244,11 +247,8 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 			xTable = CrossTable.xTable(organizedList, marker.get_genotypes())
 			if len( [ t for t in tableKeys if t != None ] ) < 2: #check for case/control elements in our data
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
-			
+
 			if options.colorInfo:
-				#print marker.get_info()
-				#print marker.get_info(options.colorInfo)
-				#exit()
 				try: 
 					markerInfo = marker.get_info(options.colorInfo)[0]    ### better name later?
 				except:

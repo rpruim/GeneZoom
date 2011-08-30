@@ -203,15 +203,6 @@ def myop( a, op, b):
 	return None
 
 
-def KeepMarkerByMAF(freq, thresh):
-	try:
-		if len(freq) < 1:
-			return True
-		return not thresh < freq[0] < 1-thresh
-	except:
-		print (freq, thresh)
-		return True
-
 
 def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	'''Creates a plot based upon a set of options, vcf information, a list of exon tuples, a bed of UCSC genomes, and a list of traits.'''
@@ -226,15 +217,6 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 		vDataFiltered = [ vmarker for vmarker in vDataFiltered if vmarker.get_maf() < options.MAF ]
 		b = max( [ vmarker.get_maf() for vmarker in vDataFiltered ] )
 		print a, '->', b
-
-	for thresh in options.threshList:
-		(field, op, val) = re.split('(<=|>=|==|!=|>|=|<)', thresh)
-		field=field.strip()
-		val=float(val.strip())
-		try:
-			vDataFiltered = [ vmarker for vmarker in vDataFiltered if sum( myop( vmarker.get_info(field), op, val) ) >= len(vmarker.get_info(field)) ]
-		except: 
-			print "unable to apply treshold", thresh, 'to', field
 
 	tableKeys = []
 	traitIDs = [ str(i) for i in traits[options.id] ]
@@ -254,7 +236,7 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 				except:
 					markerInfo = 'N/A'
 			else: 
-				markerInfo = marker.get_info()[0]                 ### better default later?
+				markerInfo = ' '  ## marker.get_info()[0]                 ### better default later?
 				
 			if not infoDict.has_key(markerInfo):# if the info is not in our dict
 				if len(infoDict)==len(options.palette):# check to see if we've used our whole palette
@@ -271,7 +253,7 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	print "%s markers plotted after filtering."%len(vDataFiltered)
 	
 	if tableKeys != None and len(tableKeys) > 1: ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[-1]))# make y-axis label as needed
-	if not options.nolegend:
+	if not options.nolegend and options.colorInfo:
 		makeLegend(ax1, infoDict)
 	if bedRow!=[]:# as long as we're actually drawing exons (so a gene, not just a region)
 		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) # draw the exons, adding them to the plot

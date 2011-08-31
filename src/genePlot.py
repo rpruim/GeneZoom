@@ -5,7 +5,7 @@ A program to generate a dotgraph based on information acquired from a vcf file, 
 
 '''
 import matplotlib
-matplotlib.use("Agg")
+#matplotlib.use("Agg")
 import CrossTable
 import os
 import matplotlib.pyplot as plt
@@ -95,7 +95,7 @@ def multiPatch(patches, patchAmount, xLoc, patchLoc, colorShade, shape):
 		elif shape=="triangle":
 			patches.append(RegularPolygon([xLoc, patchLoc], 3, radius=0.67, orientation =180, color=colorShade))
 		else: # if shape==circle
-			patches.append(Ellipse([xLoc, patchLoc], 0.4, 1, color=colorShade, linewidth=1.0))# Circle(size 2 array detailing xy, width)
+			patches.append(Ellipse([xLoc, patchLoc], 1.0, 1, color=colorShade, linewidth=1.0))# Circle(size 2 array detailing xy, width)
 		patchLoc += direction# location for the next patch
 	return patchLoc # return the location of the current group of patches, so we know where to draw the next group
 
@@ -216,10 +216,10 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	ax1, ax2, fig = SetupPlot(plotSize, dimensions, options.plotTitle, region[0], options.codons) # initialize the graph, with proper range and choices
 	vDataFiltered = [ vmarker for vmarker in vData if vmarker.checkFilter(options.filterList) ]
 	if options.MAF:
-		a = max( [ vmarker.get_maf() for vmarker in vDataFiltered ] )
+		#a = max( [ vmarker.get_maf() for vmarker in vDataFiltered ] )
 		vDataFiltered = [ vmarker for vmarker in vDataFiltered if vmarker.get_maf() < options.MAF ]
-		b = max( [ vmarker.get_maf() for vmarker in vDataFiltered ] )
-		print a, '->', b
+		#b = max( [ vmarker.get_maf() for vmarker in vDataFiltered ] )
+		#print a, '->', b
 
 	tableKeys = []
 	traitIDs = [ str(i) for i in traits[options.id] ]
@@ -247,7 +247,7 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	if len(colorMap) > len(options.palette):
 		print "More levels than colors in palette. Recycling colors."
 
-	print [(k, colorMap[k]) for k in colorKeys]
+	#print [(k, colorMap[k]) for k in colorKeys]
 		
 	for marker in vDataFiltered:
 		# check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph

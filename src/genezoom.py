@@ -216,8 +216,8 @@ def OptionSetUp(additional_args = ''):
 	graphGroup.add_option(
 		"--dimensions",
 		dest = "dimensions",
-		default = "8:5",
-		help = "Requested dimensions for graph, width:height defaulting 8:5")
+		default = "10:5",
+		help = "Requested dimensions for graph, width:height (default=10:5")
 	parser.add_option_group(infoGroup)
 	parser.add_option_group(graphGroup)
 	parser.add_option_group(outputGroup)
@@ -375,7 +375,7 @@ def parseChoices(options):
 	
 def Dump( vData ):
 	print "number of rows = ", len(vData)
-	for marker in vData[0:3]:
+	for marker in vData:
 		print marker.get_pos(), marker.get_info()
 		print marker.info_keys()
 		print marker.info_is_present(['txDN','tdRC','tdP0'])

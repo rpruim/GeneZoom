@@ -138,7 +138,7 @@ def SetupPlot(plotSize, dimensions, title, chrom, codons):
 	ax2.set_ylim(-5, 5)
 	# set up titles, labels, and ticks
 	ax1.set_title(title)
-	if codons: ax2.set_xlabel("Chromosome %s (bp/3 from start of gene)"%chrom)
+	if codons: ax2.set_xlabel("Chromosome %s (codons from start of gene)"%chrom)
 	else: ax2.set_xlabel("Chromosome %s (bp from start of gene)"%chrom)
 	ax1.grid(True)		
 	ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: str(int((abs(x))))))# set ticks to absolute value

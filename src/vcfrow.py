@@ -5,12 +5,23 @@ import string
 import logging
 from gzutils import itemOrDefault
 
+def mysplit ( s, sep='='):
+	result = re.split(sep,s)
+	result.append(None)
+	return result[:2]
+
 def getItemByNameFromEqList(list, key):
 	if key == None: 
 		return list
 	keys = [ a.split('=')[0] for a in list ]
 	vals = [ a.split('=')[1] for a in list ]
 	result = [ v for (k,v) in zip(keys, vals) if k == key ]
+	return result
+
+def getItemByNameFromEqList(list, key):
+	if key == None: 
+		return list
+	result = [ v for (k,v) in [mysplit(a) for a in list] if k == key ]
 	return result
 
 def getKeysFromEqList(list):

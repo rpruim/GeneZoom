@@ -152,10 +152,11 @@ def SetupPlot(plotSize, dimensions, title, chrom, codons):
 
 	return ax1, ax2, fig
 
-def makeLegend(axis, colorDict):
+def makeLegend(axis, colorMap, colorKeys=None):
 	'''Make the legend for the plot, receiving the axis and a color dictionary'''
-	colorKeys = colorDict.keys()
-	colorValues = [Ellipse((0,0), 1, 1, color = colorDict[key]) for key in colorKeys]
+	if colorKeys == None:
+		colorKeys = colorMap.keys()
+	colorValues = [Ellipse((0,0), 1, 1, color = colorMap[key]) for key in colorKeys]
 	leg1 = axis.legend(colorValues, colorKeys, shadow=True, fancybox=True, prop=font_manager.FontProperties(size=8))
 	# leg1 = axis.legend((Ellipse((0, 0), 1, 1, color=alleleColor[1]), Ellipse((0, 0), 1, 1, color=alleleColor[0])), ('min(1/1, 0/0)', '1/0 and 0/1'), shadow=True, fancybox=True, prop=font_manager.FontProperties(size=8))
 	try:
@@ -227,24 +228,26 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 
 
 	colorMap = {}
+	colorKeys = []
 	i = 0
 	if options.colorFlags:
-		colorFlagList = options.colorFlags.split(',')
-		colorFlagList.append(None)
-		for flag in colorFlagList:
+		colorKeys = options.colorFlags.split(',')
+		colorKeys.append(None)
+		for flag in colorKeys:
 			colorMap[flag] = options.palette[i%len(options.palette)]
 			i = i + 1
 	elif options.colorInfo:
-		infoLevels = set( [ gzutils.itemOrDefault( m.get_info(options.colorInfo), 0, "N/A") for m in vDataFiltered ] )
-		infoLevels = infoLevels - set(['N/A'])
-		infoLevels = sorted( list(infoLevels) )
-		infoLevels.append('N/A')
-		for level in infoLevels:
-			colorMap[level] = options.palette[i%len(options.palette)]
+		colorKeys = set( [ gzutils.itemOrDefault( m.get_info(options.colorInfo), 0, "N/A") for m in vDataFiltered ] )
+		colorKeys = colorKeys - set(['N/A'])
+		colorKeys = sorted( list(colorKeys) )
+		colorKeys.append('N/A')
+		for key in colorKeys:
+			colorMap[key] = options.palette[i%len(options.palette)]
 			i = i + 1
 	if len(colorMap) > len(options.palette):
-		print "More info levels than colors in palette. Recycling colors."
-	
+		print "More levels than colors in palette. Recycling colors."
+
+	print [(k, colorMap[k]) for k in colorKeys]
 		
 	for marker in vDataFiltered:
 		# check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
@@ -255,7 +258,7 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
 
 			if options.colorFlags:
-				markerInfo = marker.info_is_present(colorFlagList)
+				markerInfo = marker.info_is_present(colorKeys)
 			elif options.colorInfo:
 				try: 
 					markerInfo = marker.get_info(options.colorInfo)[0]    ### better name later?
@@ -282,7 +285,7 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	if tableKeys != None and len(tableKeys) > 1: ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[-1]))# make y-axis label as needed
 	if not options.nolegend and options.colorInfo:
 		# makeLegend(ax1, infoDict)
-		makeLegend(ax1, colorMap)
+		makeLegend(ax1, colorMap, colorKeys)
 	if bedRow!=[]:# as long as we're actually drawing exons (so a gene, not just a region)
 		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) # draw the exons, adding them to the plot
 		ax2.add_collection(exonRect)

@@ -283,7 +283,7 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	print "%s markers plotted after filtering."%len(vDataFiltered)
 	
 	if tableKeys != None and len(tableKeys) > 1: ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[-1]))# make y-axis label as needed
-	if not options.nolegend and options.colorInfo:
+	if not options.nolegend and (options.colorInfo or options.colorFlags):
 		# makeLegend(ax1, infoDict)
 		makeLegend(ax1, colorMap, colorKeys)
 	if bedRow!=[]:# as long as we're actually drawing exons (so a gene, not just a region)

@@ -5,7 +5,7 @@ A program to generate a dotgraph based on information acquired from a vcf file, 
 
 '''
 import matplotlib
-#matplotlib.use("Agg")
+matplotlib.use("Agg")
 import CrossTable
 import os
 import matplotlib.pyplot as plt

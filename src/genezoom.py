@@ -109,6 +109,11 @@ def OptionSetUp(additional_args = ''):
 		default = None,
 		help = "maximum MAF to retain")
 	infoGroup.add_option(
+		"--colorFlags",
+		dest = "colorFlags",
+		default = None,
+		help = "color based on first of comma separated list of potential INFO items are present")
+	infoGroup.add_option(
 		"--thresh",
 		dest = "thresh",
 		default = None,

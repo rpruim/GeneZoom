@@ -13,6 +13,9 @@ def getItemByNameFromEqList(list, key):
 	result = [ v for (k,v) in zip(keys, vals) if k == key ]
 	return result
 
+def getKeysFromEqList(list):
+	return [ a.split('=')[0] for a in list ]
+
 class VCFrow:
 	def __init__(self, s):
 		s.strip()
@@ -51,6 +54,18 @@ class VCFrow:
 
 	def get_info(self, key=None):
 		return getItemByNameFromEqList( self._items[7].split(';') , key )
+
+	def info_keys(self):
+		return getKeysFromEqList(self._items[7])
+
+	def info_is_present(self, key):
+		infoKeys = self.info_keys()
+		if isinstance(key, list):
+			for k in key:
+				if k in infoKeys:
+					return 
+			return None
+		return key in self.info_keys()
 
 	def get_format(self, key=None):
 		return getItemByNameFromEqList( self._items[8].split(';') , key )

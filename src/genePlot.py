@@ -225,19 +225,27 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	
 #	infoDict ={}
 
-	infoLevels = set( [ gzutils.itemOrDefault( m.get_info(options.colorInfo), 0, "N/A") for m in vDataFiltered ] )
-	infoLevels = infoLevels - set(['N/A'])
-	infoLevels = sorted( list(infoLevels) )
-	infoLevels.append('N/A')
 
 	colorMap = {}
 	i = 0
-	for level in infoLevels:
-		colorMap[level] = options.palette[i%len(options.palette)]
-		i = i + 1
+	if options.colorFlags:
+		colorFlagList = options.colorFlags.split(',')
+		colorFlagList.append(None)
+		for flag in colorFlagList:
+			colorMap[flag] = options.palette[i%len(options.palette)]
+			i = i + 1
+	elif options.colorInfo:
+		infoLevels = set( [ gzutils.itemOrDefault( m.get_info(options.colorInfo), 0, "N/A") for m in vDataFiltered ] )
+		infoLevels = infoLevels - set(['N/A'])
+		infoLevels = sorted( list(infoLevels) )
+		infoLevels.append('N/A')
+		for level in infoLevels:
+			colorMap[level] = options.palette[i%len(options.palette)]
+			i = i + 1
 	if len(colorMap) > len(options.palette):
 		print "More info levels than colors in palette. Recycling colors."
 	
+		
 	for marker in vDataFiltered:
 		# check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
 		if (exonDict.has_key(int(marker.get_pos()))):
@@ -246,7 +254,9 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 			if len( [ t for t in tableKeys if t != None ] ) < 2: # check for case/control elements in our data
 				tableKeys = [ k for k in xTable.getTable().keys() if k != None ]
 
-			if options.colorInfo:
+			if options.colorFlags:
+				markerInfo = marker.info_is_present(colorFlagList)
+			elif options.colorInfo:
 				try: 
 					markerInfo = marker.get_info(options.colorInfo)[0]    ### better name later?
 				except IndexError:

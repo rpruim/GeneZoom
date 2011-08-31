@@ -15,9 +15,11 @@ from matplotlib.collections import PatchCollection
 import matplotlib.ticker as ticker
 from matplotlib import font_manager
 import re
+import gzutils
 
 
 ######################################################
+
 
 def bp2exonbp(tupleList, number, introns):
 	'''Method to convert a base pair to its location as a base pair in the exon.
@@ -221,7 +223,21 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	tableKeys = []
 	traitIDs = [ str(i) for i in traits[options.id] ]
 	
-	infoDict ={}
+#	infoDict ={}
+
+	infoLevels = set( [ gzutils.itemOrDefault( m.get_info(options.colorInfo), 0, "N/A") for m in vDataFiltered ] )
+	infoLevels = infoLevels - set(['N/A'])
+	infoLevels = sorted( list(infoLevels) )
+	infoLevels.append('N/A')
+
+	colorMap = {}
+	i = 0
+	for level in infoLevels:
+		colorMap[level] = options.palette[i%len(options.palette)]
+		i = i + 1
+	if len(colorMap) > len(options.palette):
+		print "More info levels than colors in palette. Recycling colors."
+	
 	for marker in vDataFiltered:
 		# check to see if the gene is in the exon.  If it is, create a cross table, draw the dots and add them to the graph
 		if (exonDict.has_key(int(marker.get_pos()))):
@@ -233,16 +249,17 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 			if options.colorInfo:
 				try: 
 					markerInfo = marker.get_info(options.colorInfo)[0]    ### better name later?
-				except:
+				except IndexError:
 					markerInfo = 'N/A'
 			else: 
-				markerInfo = ' '  ## marker.get_info()[0]                 ### better default later?
+				markerInfo = 'N/A'  ## marker.get_info()[0]                 ### better default later?
 				
-			if not infoDict.has_key(markerInfo):# if the info is not in our dict
-				if len(infoDict)==len(options.palette):# check to see if we've used our whole palette
-					print "No more colors in palette.  Reusing colors."
-				infoDict[markerInfo] = options.palette[len(infoDict)%len(options.palette)]
-			tempColors = (infoDict[markerInfo], infoDict[markerInfo])
+#			if not infoDict.has_key(markerInfo):         # if the info is not in our dict
+#				if len(infoDict)==len(options.palette):  # check to see if we've used our whole palette
+#					print "No more colors in palette.  Reusing colors."
+#				infoDict[markerInfo] = options.palette[len(infoDict)%len(options.palette)]
+#			tempColors = (infoDict[markerInfo], infoDict[markerInfo])
+			tempColors = (colorMap[markerInfo], colorMap[markerInfo])
 			
 			if len(tableKeys) > 1: 
 				if marker.is_indel():  # if this gene is an indel, draw triangles instead
@@ -254,7 +271,8 @@ def pictograph(options, vData, exonDict, bedRow, traits, region, vcfIDs):
 	
 	if tableKeys != None and len(tableKeys) > 1: ax1.set_ylabel("%s                       %s"%(tableKeys[0], tableKeys[-1]))# make y-axis label as needed
 	if not options.nolegend and options.colorInfo:
-		makeLegend(ax1, infoDict)
+		# makeLegend(ax1, infoDict)
+		makeLegend(ax1, colorMap)
 	if bedRow!=[]:# as long as we're actually drawing exons (so a gene, not just a region)
 		exonRect = drawExon(bedRow.get_exons(), exonDict, exoncolors, options.introns) # draw the exons, adding them to the plot
 		ax2.add_collection(exonRect)

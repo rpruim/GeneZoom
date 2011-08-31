@@ -23,6 +23,12 @@ import decimal
 import fnmatch
 from which import which_files
 
+def itemOrDefault(d, k, default=None):
+	try:
+		return d[k]
+	except:
+		return default
+
 def check(expression, msg=None):
 	if msg == None:
 		pass

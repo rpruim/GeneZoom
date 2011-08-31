@@ -3,12 +3,7 @@ import re
 #import sys
 import string
 import logging
-
-def itemOrDefault(d, k, default=None):
-	try:
-		return d[k]
-	except:
-		return default
+from gzutils import itemOrDefault
 
 def getItemByNameFromEqList(list, key):
 	if key == None: 

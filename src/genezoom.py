@@ -93,6 +93,12 @@ def OptionSetUp(additional_args = ''):
 		help="info field to use for coloring", 
 		metavar="STRING")
 	infoGroup.add_option(
+		"--dump",
+		dest="dump",
+		default=False,
+		action="store_true",
+		help="dump information about selected markers")
+	infoGroup.add_option(
 		"--id",
 		dest= "id",
 		default = "ID",
@@ -366,7 +372,14 @@ def parseChoices(options):
 		options.height = 5
 	
 	return options
-		
+	
+def Dump( vData ):
+	print "number of rows = ", len(vData)
+	for marker in vData[0:3]:
+		print marker.get_pos(), marker.get_info()
+		print marker.info_keys()
+		print marker.info_is_present(['txDN','tdRC','tdP0'])
+
 def RunJob(job_options, bedRows, vReader, traits, region):
 	'''Load and run job'''
 	#logging.critical(str(region))
@@ -376,6 +389,8 @@ def RunJob(job_options, bedRows, vReader, traits, region):
 	print len(vData), "markers in region " + str(region[0]) + ":" + str(region[1]) + "-" + str(region[2])
 	#PrintOptions(options, region)
 	gp.pictograph(job_options, vData, exonDict, bedrow, traits, region, vcfIDs)
+	if options.dump:
+		Dump(vData)
 
 def bedRowUnion(bedRows):
 	geneList = []
@@ -421,7 +436,7 @@ if __name__ == "__main__":
 				logging.critical("Unable to open vcf file: " + str(job_options.vcf_file) )
 				logging.critical("\tSkipping.")
 				continue
-		print last_vcf_file
+#		print last_vcf_file
 		if job_options.trait_file != last_trait_file:
 			traitfile = job_options.directory + job_options.trait_file
 			refFlat, traits = DataSetup(traitfile, job_options.bed)

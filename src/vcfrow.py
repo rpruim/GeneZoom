@@ -67,14 +67,14 @@ class VCFrow:
 		return getItemByNameFromEqList( self._items[7].split(';') , key )
 
 	def info_keys(self):
-		return getKeysFromEqList(self._items[7])
+		return getKeysFromEqList( self._items[7].split(';') )
 
 	def info_is_present(self, key):
 		infoKeys = self.info_keys()
 		if isinstance(key, list):
 			for k in key:
 				if k in infoKeys:
-					return 
+					return k
 			return None
 		return key in self.info_keys()
 

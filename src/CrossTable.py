@@ -35,10 +35,10 @@ class xTable:
         '''Prints the table, in roughly table format'''
         print "\t",
         for entry in self.table.keys():
-            print entry+"\t",
+            print str(entry) + "\t",
         print "\n",
         for entryb in self.table[entry]:
-            print entryb+" \t ",
+            print str(entryb) + " \t ",
             for entryc in self.table.keys():
                 if self.table[entryc].has_key(entryb):
                     print "%s\t "%self.table[entryc][entryb],

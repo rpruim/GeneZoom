@@ -382,7 +382,7 @@ def Dump(options,vData, traits, vcfIDs):
 		#print marker.info_keys()
 		#print options.colorFlags.split(',')
 		if options.colorFlags:
-			print "color flags:", marker.info_is_present(options.colorFlags.split(',')) # ['txDN','tdRC','tdP0'])
+			print "color flags:", str(marker.info_is_present(options.colorFlags.split(','))) # ['txDN','tdRC','tdP0'])
 
 		print "genotypes:", marker.genotypeTally()
 		# organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs

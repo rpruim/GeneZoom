@@ -9,6 +9,7 @@ import genePlot as gp
 import logging
 import shlex
 import sys
+import CrossTable
 
 def parseCommandLine(line):
 	my_splitter = shlex.shlex(line, posix=True)
@@ -373,12 +374,24 @@ def parseChoices(options):
 	
 	return options
 	
-def Dump( vData ):
+def Dump(options,vData, traits, vcfIDs):
 	print "number of rows = ", len(vData)
 	for marker in vData:
-		print marker.get_pos(), marker.get_info()
-		print marker.info_keys()
-		print marker.info_is_present(['txDN','tdRC','tdP0'])
+		print "Chr" + str(marker.get_chrom()) +  ":" + str(marker.get_pos())
+		#print marker.get_info()
+		#print marker.info_keys()
+		#print options.colorFlags.split(',')
+		if options.colorFlags:
+			print "color flags:", marker.info_is_present(options.colorFlags.split(',')) # ['txDN','tdRC','tdP0'])
+
+		print "genotypes:", marker.genotypeTally()
+		# organize the traits into a list, returning a list of case/control/None corresponding to the vcfIDs
+		traitIDs = [ str(i) for i in traits[options.id] ]
+		print options.groups, "by genotype"
+		organizedList=CrossTable.cullList(vcfIDs, traitIDs, traits[options.groups])
+		xTable = CrossTable.xTable(organizedList, marker.get_genotypes())
+		xTable.printTable()
+		print ""
 
 def RunJob(job_options, bedRows, vReader, traits, region):
 	'''Load and run job'''
@@ -390,7 +403,7 @@ def RunJob(job_options, bedRows, vReader, traits, region):
 	#PrintOptions(options, region)
 	gp.pictograph(job_options, vData, exonDict, bedrow, traits, region, vcfIDs)
 	if options.dump:
-		Dump(vData)
+		Dump(job_options, vData, traits, vcfIDs)
 
 def bedRowUnion(bedRows):
 	geneList = []
